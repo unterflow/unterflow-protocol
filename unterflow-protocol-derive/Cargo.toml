@@ -1,0 +1,14 @@
+[package]
+authors = ["Sebastian Menski <sebastian@menski.org>"]
+name = "unterflow-protocol-derive"
+version = "0.1.0"
+
+[dependencies]
+quote = "0.3.15"
+syn = "0.11.11"
+
+[dev-dependencies]
+unterflow-protocol = { path = ".." }
+
+[lib]
+proc-macro = true

@@ -1,0 +1,8 @@
+[package]
+authors = ["Sebastian Menski <sebastian@menski.org>"]
+name = "unterflow-protocol"
+version = "0.1.0"
+
+[dependencies]
+byteorder = "1.1.0"
+unterflow-protocol-derive = { path = "unterflow-protocol-derive" }
