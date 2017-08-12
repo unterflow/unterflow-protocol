@@ -4,7 +4,7 @@ extern crate unterflow_protocol_derive;
 
 pub mod io;
 
-use io::{FromBytes, HasBlockLength, ToBytes};
+use io::{FromBytes, HasBlockLength, Message, ToBytes};
 
 #[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
 pub struct DataFrameHeader {
@@ -95,6 +95,46 @@ pub enum ControlMessage {
     KeepAlive,
 }
 
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
+pub struct MessageHeader {
+    block_length: u16,
+    template_id: u16,
+    schema_id: u16,
+    version: u16,
+}
+
+impl MessageHeader {
+    pub fn new(block_length: u16, template_id: u16, schema_id: u16, version: u16) -> Self {
+        MessageHeader {
+            block_length,
+            template_id,
+            schema_id,
+            version,
+        }
+    }
+}
+
+pub trait ToMessageHeader {
+    fn message_header() -> MessageHeader;
+}
+impl<'a, T: Message + HasBlockLength> From<&'a T> for MessageHeader {
+    fn from(_: &'a T) -> Self {
+        T::message_header()
+    }
+}
+
+impl<T: Message + HasBlockLength> ToMessageHeader for T {
+    fn message_header() -> MessageHeader {
+        MessageHeader {
+            block_length: T::block_length(),
+            template_id: T::template_id(),
+            schema_id: T::schema_id(),
+            version: T::version(),
+        }
+    }
+}
+
+
 pub fn align(value: usize) -> usize {
     (value + 7) & !7
 }
@@ -182,6 +222,27 @@ mod test {
 
         assert_eq!(8, RequestResponseHeader::block_length());
         assert_eq!(256, header.request_id());
+    }
+
+    #[test]
+    fn test_message_header() {
+        let mut buffer = vec![];
+
+        buffer.write_u16::<LittleEndian>(1).unwrap();
+        buffer.write_u16::<LittleEndian>(2).unwrap();
+        buffer.write_u16::<LittleEndian>(3).unwrap();
+        buffer.write_u16::<LittleEndian>(4).unwrap();
+
+        let header = MessageHeader::new(1, 2, 3, 4);
+
+        let mut bytes = vec![];
+        header.to_bytes(&mut bytes).unwrap();
+
+        assert_eq!(buffer, bytes);
+
+        assert_eq!(header, MessageHeader::from_bytes(&mut &buffer[..]).unwrap());
+
+        assert_eq!(8, MessageHeader::block_length());
     }
 
 }
