@@ -66,6 +66,21 @@ impl TransportHeader {
     }
 }
 
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
+pub struct RequestResponseHeader {
+    request_id: u64,
+}
+
+impl RequestResponseHeader {
+    pub fn new(request_id: u64) -> Self {
+        RequestResponseHeader { request_id }
+    }
+
+    pub fn request_id(&self) -> u64 {
+        self.request_id
+    }
+}
+
 pub fn align(value: u32) -> u32 {
     (value + 7) & !7
 }
@@ -133,6 +148,26 @@ mod test {
         assert_eq!(2, TransportHeader::block_length());
         assert_eq!(&TransportProtocol::FullDuplexSingleMessage,
                    header.protocol())
+    }
+
+    #[test]
+    fn test_request_response_header() {
+        let mut buffer = vec![];
+
+        buffer.write_u64::<LittleEndian>(256).unwrap();
+
+        let header = RequestResponseHeader::new(256);
+
+        let mut bytes = vec![];
+        header.to_bytes(&mut bytes).unwrap();
+
+        assert_eq!(buffer, bytes);
+
+        assert_eq!(header,
+                   RequestResponseHeader::from_bytes(&mut &buffer[..]).unwrap());
+
+        assert_eq!(8, RequestResponseHeader::block_length());
+        assert_eq!(256, header.request_id());
     }
 
 }

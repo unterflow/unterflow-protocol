@@ -23,6 +23,9 @@ fn topology_request() {
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
                transport_header);
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(256), request_response_header);
 }
 
 #[test]
@@ -38,6 +41,9 @@ fn topology_response() {
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
                transport_header);
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(256), request_response_header);
 }
 
 #[test]
@@ -53,6 +59,9 @@ fn create_task_request() {
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
                transport_header);
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(257), request_response_header);
 }
 
 #[test]
@@ -68,6 +77,9 @@ fn create_task_response() {
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
                transport_header);
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(257), request_response_header);
 }
 
 #[test]
@@ -83,6 +95,9 @@ fn open_task_subscription_request() {
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
                transport_header);
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(258), request_response_header);
 }
 
 #[test]
@@ -98,6 +113,9 @@ fn open_task_subscription_response() {
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
                transport_header);
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(258), request_response_header);
 }
 
 #[test]
@@ -113,6 +131,9 @@ fn close_task_subscription_request() {
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
                transport_header);
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(259), request_response_header);
 }
 
 #[test]
@@ -128,6 +149,9 @@ fn close_task_subscription_response() {
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
                transport_header);
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(259), request_response_header);
 }
 
 #[test]
@@ -143,6 +167,9 @@ fn open_topic_subscription_request() {
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
                transport_header);
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(257), request_response_header);
 }
 
 #[test]
@@ -158,6 +185,9 @@ fn open_topic_subscription_response() {
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
                transport_header);
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(257), request_response_header);
 }
 
 #[test]
@@ -173,6 +203,9 @@ fn close_topic_subscription_request() {
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
                transport_header);
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(258), request_response_header);
 }
 
 #[test]
@@ -188,6 +221,9 @@ fn close_topic_subscription_response() {
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
                transport_header);
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(258), request_response_header);
 }
 
 #[test]
