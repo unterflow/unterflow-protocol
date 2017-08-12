@@ -6,7 +6,7 @@ extern crate syn;
 extern crate quote;
 
 use proc_macro::TokenStream;
-use syn::{Body, ConstExpr, DeriveInput, Ident, Lit, MetaItem, Path, Ty, VariantData};
+use syn::{Body, ConstExpr, DeriveInput, Ident, Lit, MetaItem, NestedMetaItem, Path, Ty, VariantData};
 
 #[proc_macro_derive(FromBytes, attributes(enum_type))]
 pub fn derive_from_bytes(input: TokenStream) -> TokenStream {
@@ -180,6 +180,42 @@ pub fn derive_has_block_length(input: TokenStream) -> TokenStream {
     expr.to_string().parse().expect("parse quote!")
 }
 
+#[proc_macro_derive(Message, attributes(message, template_id, schema_id, version))]
+pub fn derive_message(input: TokenStream) -> TokenStream {
+    let ast = syn::parse_derive_input(&input.to_string()).expect("parse_derive_input");
+    let name = &ast.ident;
+
+    let expr = match ast.body {
+        Body::Struct(_) => {
+            let template_id = template_id(&ast).expect("#[derive(Message)] requires message(template_id) attribute]");
+            let schema_id = schema_id(&ast).expect("#[derive(Message)] requires message(schema_id) attribute");
+            let version = version(&ast).expect("#[derive(Message)] requires message(version) attribute]");
+
+            let (impl_generics, ty_generics, where_clause) = ast.generics.split_for_impl();
+
+            quote! {
+                impl #impl_generics Message for #name #ty_generics #where_clause {
+                    fn template_id() -> u16 {
+                        #template_id
+                    }
+
+                    fn schema_id() -> u16 {
+                        #schema_id
+                    }
+
+                    fn version() -> u16 {
+                        #version
+                    }
+
+                }
+            }
+        }
+        _ => panic!("#[derive(Message)] can only be used with structs"),
+    };
+
+    expr.to_string().parse().expect("parse quote!")
+}
+
 fn as_ty(ty: String) -> Ty {
     let ident = Ident::from(ty);
     Ty::Path(None, Path::from(ident))
@@ -196,6 +232,38 @@ fn named_attr(ast: &DeriveInput, name: &str) -> Option<String> {
         .iter()
         .filter_map(|attr| match attr.value {
                         MetaItem::NameValue(ref ident, Lit::Str(ref value, _)) if ident == name => Some(value.to_owned()),
+                        _ => None,
+                    })
+        .next()
+}
+
+fn template_id(ast: &DeriveInput) -> Option<u16> {
+    list_attr(ast, "message", "template_id").and_then(|value| value.parse::<u16>().ok())
+}
+
+fn schema_id(ast: &DeriveInput) -> Option<u16> {
+    list_attr(ast, "message", "schema_id").and_then(|value| value.parse::<u16>().ok())
+}
+
+fn version(ast: &DeriveInput) -> Option<u16> {
+    list_attr(ast, "message", "version").and_then(|value| value.parse::<u16>().ok())
+}
+
+fn list_attr(ast: &DeriveInput, name: &str, item: &str) -> Option<String> {
+    ast.attrs
+        .iter()
+        .filter_map(|attr| match attr.value {
+                        MetaItem::List(ref ident, ref values) if ident == name => {
+                            values
+                                .iter()
+                                .filter_map(|attr| match *attr {
+                                                NestedMetaItem::MetaItem(MetaItem::NameValue(ref ident, Lit::Str(ref value, _))) if ident == item => {
+                                                    Some(value.to_owned())
+                                                }
+                                                _ => None,
+                                            })
+                                .next()
+                        }
                         _ => None,
                     })
         .next()

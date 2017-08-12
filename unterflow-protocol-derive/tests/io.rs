@@ -2,7 +2,7 @@ extern crate unterflow_protocol;
 #[macro_use]
 extern crate unterflow_protocol_derive;
 
-use unterflow_protocol::io::{FromBytes, HasBlockLength, ToBytes};
+use unterflow_protocol::io::{FromBytes, HasBlockLength, Message, ToBytes};
 
 
 #[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
@@ -31,7 +31,8 @@ enum EnumWithTypeAndCustomValues {
     B = 16,
 }
 
-#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message)]
+#[message(template_id = "12", schema_id = "24", version = "36")]
 struct Struct {
     a: u8,
     b: i8,
@@ -126,4 +127,11 @@ fn has_block_length() {
     assert_eq!(1, EnumWithCustomValues::block_length());
     assert_eq!(2, EnumWithTypeAndCustomValues::block_length());
     assert_eq!(38, Struct::block_length());
+}
+
+#[test]
+fn message_struct() {
+    assert_eq!(12, Struct::template_id());
+    assert_eq!(24, Struct::schema_id());
+    assert_eq!(36, Struct::version());
 }

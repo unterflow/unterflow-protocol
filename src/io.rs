@@ -14,6 +14,12 @@ pub trait HasBlockLength {
     fn block_length() -> u16;
 }
 
+pub trait Message {
+    fn template_id() -> u16;
+    fn schema_id() -> u16;
+    fn version() -> u16;
+}
+
 impl FromBytes for u8 {
     fn from_bytes(reader: &mut Read) -> Result<Self, io::Error> {
         reader.read_u8()
