@@ -1,4 +1,7 @@
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
+use rmp_serde::{Deserializer, Serializer};
+use rmp_serde::encode::StructMapWriter;
+use serde::{Deserialize, Serialize};
 use std::io::{self, Read, Write};
 use std::mem::size_of;
 
@@ -18,6 +21,18 @@ pub trait Message {
     fn template_id() -> u16;
     fn schema_id() -> u16;
     fn version() -> u16;
+}
+
+pub trait HasData {
+    fn data(&self) -> &Data;
+}
+
+pub trait FromData {
+    fn from_data<H: HasData>(has_data: &H) -> Result<Self, io::Error> where Self: Sized;
+}
+
+pub trait ToData {
+    fn to_data(&self) -> Result<Data, io::Error>;
 }
 
 impl FromBytes for u8 {
@@ -204,6 +219,12 @@ impl ToBytes for Data {
     }
 }
 
+impl HasData for Data {
+    fn data(&self) -> &Data {
+        self
+    }
+}
+
 impl FromBytes for String {
     fn from_bytes(reader: &mut Read) -> Result<Self, io::Error> {
         let buffer: Data = FromBytes::from_bytes(reader)?;
@@ -247,10 +268,33 @@ impl<T: ToBytes + HasBlockLength> ToBytes for Vec<T> {
     }
 }
 
+impl<'d, T> FromData for T
+    where T: Deserialize<'d>
+{
+    fn from_data<H: HasData>(has_data: &H) -> Result<Self, io::Error> {
+        let reader: &[u8] = has_data.data();
+        let mut de = Deserializer::new(reader);
+
+        Deserialize::deserialize(&mut de).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+    }
+}
+
+impl<T> ToData for T
+    where T: Serialize
+{
+    fn to_data(&self) -> Result<Data, io::Error> {
+        let mut buffer = Vec::new();
+        self.serialize(&mut Serializer::with(&mut buffer, StructMapWriter))
+            .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+
+        Ok(Data(buffer))
+    }
+}
+
 #[cfg(test)]
 mod test {
 
-    use super::{Data, FromBytes, HasBlockLength, ToBytes};
+    use super::*;
     use byteorder::{LittleEndian, WriteBytesExt};
     use io::Write;
 
@@ -463,5 +507,38 @@ mod test {
         assert_eq!(8, i64::block_length());
     }
 
+    #[test]
+    fn from_data() {
+        let data = Data(vec![0x92, 0x0c, 0xa3, 0x61, 0x62, 0x63]);
+        #[derive(Debug, PartialEq, Deserialize, Serialize)]
+        struct Foo {
+            a: u32,
+            b: String,
+        }
+
+        let expected = Foo {
+            a: 12,
+            b: "abc".to_string(),
+        };
+
+        assert_eq!(expected, Foo::from_data(&data).unwrap());
+    }
+
+    #[test]
+    fn to_data() {
+        #[derive(Debug, PartialEq, Deserialize, Serialize)]
+        struct Foo {
+            a: u32,
+            b: String,
+        }
+
+        let foo = Foo {
+            a: 12,
+            b: "abc".to_string(),
+        };
+
+        assert_eq!(Data(vec![0x82, 0xa1, 0x61, 0x0c, 0xa1, 0x62, 0xa3, 0x61, 0x62, 0x63]),
+                   foo.to_data().unwrap());
+    }
 
 }

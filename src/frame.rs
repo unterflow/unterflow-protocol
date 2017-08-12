@@ -99,7 +99,6 @@ mod test {
 
     use super::*;
     use byteorder::{LittleEndian, WriteBytesExt};
-    use std::io::Write;
 
     #[test]
     fn test_align() {

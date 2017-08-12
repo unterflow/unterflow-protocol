@@ -2,6 +2,7 @@ extern crate unterflow_protocol;
 
 use unterflow_protocol::frame::*;
 use unterflow_protocol::io::*;
+use unterflow_protocol::message::*;
 use unterflow_protocol::sbe::*;
 
 macro_rules! dump {
@@ -32,8 +33,10 @@ fn topology_request() {
     assert_eq!(ControlMessageRequest::message_header(), message_header);
 
     let request = ControlMessageRequest::from_bytes(&mut reader).unwrap();
-    assert_eq!(ControlMessageRequest::new(ControlMessageType::RequestTopology, vec![128]),
-               request);
+    assert_eq!(&ControlMessageType::RequestTopology, request.message_type());
+    assert!(TopologyRequest::from_data(&request).is_ok());
+
+    assert_eq!(data_frame_header.padding(), reader.len());
 }
 
 #[test]
@@ -54,7 +57,20 @@ fn topology_response() {
     assert_eq!(RequestResponseHeader::new(256), request_response_header);
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(MessageHeader::new(0, 11, 0, 1), message_header);
+    assert_eq!(ControlMessageResponse::message_header(), message_header);
+
+    let response = ControlMessageResponse::from_bytes(&mut reader).unwrap();
+    let topology = TopologyResponse::from_data(&response).unwrap();
+
+    assert_eq!(&vec![TopicLeader::new("0.0.0.0".to_string(),
+                                      51_015,
+                                      "default-topic".to_string(),
+                                      0)],
+               topology.topic_leaders());
+    assert_eq!(&vec![SocketAddress::new("0.0.0.0".to_string(), 51_015)],
+               topology.brokers());
+
+    assert_eq!(data_frame_header.padding(), reader.len());
 }
 
 #[test]
@@ -117,7 +133,24 @@ fn open_task_subscription_request() {
     assert_eq!(RequestResponseHeader::new(258), request_response_header);
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(MessageHeader::new(1, 10, 0, 1), message_header);
+    assert_eq!(ControlMessageRequest::message_header(), message_header);
+
+    let request = ControlMessageRequest::from_bytes(&mut reader).unwrap();
+    assert_eq!(&ControlMessageType::AddTaskSubscription,
+               request.message_type());
+
+    let subscription = TaskSubscription::from_data(&request).unwrap();
+
+    assert_eq!(TaskSubscription::new("default-topic".to_string(),
+                                     0,
+                                     "foo".to_string(),
+                                     "test".to_string(),
+                                     300_000,
+                                     0,
+                                     32),
+               subscription);
+
+    assert_eq!(data_frame_header.padding(), reader.len());
 }
 
 #[test]
@@ -138,7 +171,21 @@ fn open_task_subscription_response() {
     assert_eq!(RequestResponseHeader::new(258), request_response_header);
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(MessageHeader::new(0, 11, 0, 1), message_header);
+    assert_eq!(ControlMessageResponse::message_header(), message_header);
+
+    let response = ControlMessageResponse::from_bytes(&mut reader).unwrap();
+    let subscription = TaskSubscription::from_data(&response).unwrap();
+
+    assert_eq!(TaskSubscription::new("default-topic".to_string(),
+                                     0,
+                                     "foo".to_string(),
+                                     "test".to_string(),
+                                     300_000,
+                                     0,
+                                     32),
+               subscription);
+
+    assert_eq!(data_frame_header.padding(), reader.len());
 }
 
 #[test]
@@ -159,7 +206,18 @@ fn close_task_subscription_request() {
     assert_eq!(RequestResponseHeader::new(259), request_response_header);
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(MessageHeader::new(1, 10, 0, 1), message_header);
+    assert_eq!(ControlMessageRequest::message_header(), message_header);
+
+    let request = ControlMessageRequest::from_bytes(&mut reader).unwrap();
+    assert_eq!(&ControlMessageType::RemoveTaskSubscription,
+               request.message_type());
+
+    let subscription = TaskSubscription::from_data(&request).unwrap();
+
+    assert_eq!(TaskSubscription::for_topic("default-topic".to_string(), 0),
+               subscription);
+
+    assert_eq!(data_frame_header.padding(), reader.len());
 }
 
 #[test]
@@ -180,7 +238,21 @@ fn close_task_subscription_response() {
     assert_eq!(RequestResponseHeader::new(259), request_response_header);
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(MessageHeader::new(0, 11, 0, 1), message_header);
+    assert_eq!(ControlMessageResponse::message_header(), message_header);
+
+    let response = ControlMessageResponse::from_bytes(&mut reader).unwrap();
+    let subscription = TaskSubscription::from_data(&response).unwrap();
+
+    assert_eq!(TaskSubscription::new("default-topic".to_string(),
+                                     0,
+                                     "".to_string(),
+                                     "default".to_string(),
+                                     0,
+                                     0,
+                                     0),
+               subscription);
+
+    assert_eq!(data_frame_header.padding(), reader.len());
 }
 
 #[test]
@@ -190,7 +262,7 @@ fn open_topic_subscription_request() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(125, 0, 0, 0, 1), data_frame_header);
+    assert_eq!(DataFrameHeader::new(125, 0, 0, 0, 0), data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -198,7 +270,7 @@ fn open_topic_subscription_request() {
                transport_header);
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(257), request_response_header);
+    assert_eq!(RequestResponseHeader::new(258), request_response_header);
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(MessageHeader::new(19, 20, 0, 1), message_header);
@@ -211,7 +283,7 @@ fn open_topic_subscription_response() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(133, 0, 0, 0, 1), data_frame_header);
+    assert_eq!(DataFrameHeader::new(125, 0, 0, 0, 0), data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -219,7 +291,7 @@ fn open_topic_subscription_response() {
                transport_header);
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(257), request_response_header);
+    assert_eq!(RequestResponseHeader::new(258), request_response_header);
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(MessageHeader::new(18, 21, 0, 1), message_header);
@@ -232,7 +304,7 @@ fn close_topic_subscription_request() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(82, 0, 0, 0, 1), data_frame_header);
+    assert_eq!(DataFrameHeader::new(74, 0, 0, 0, 0), data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -240,10 +312,21 @@ fn close_topic_subscription_request() {
                transport_header);
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(258), request_response_header);
+    assert_eq!(RequestResponseHeader::new(259), request_response_header);
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(MessageHeader::new(1, 10, 0, 1), message_header);
+    assert_eq!(ControlMessageRequest::message_header(), message_header);
+
+    let request = ControlMessageRequest::from_bytes(&mut reader).unwrap();
+    assert_eq!(&ControlMessageType::RemoveTopicSubscription,
+               request.message_type());
+
+    let subscription = CloseSubscription::from_data(&request).unwrap();
+
+    assert_eq!(CloseSubscription::new("default-topic".to_string(), 0, 123),
+               subscription);
+
+    assert_eq!(data_frame_header.padding(), reader.len());
 }
 
 #[test]
@@ -253,7 +336,7 @@ fn close_topic_subscription_response() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(81, 0, 0, 0, 1), data_frame_header);
+    assert_eq!(DataFrameHeader::new(73, 0, 0, 0, 0), data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -261,10 +344,18 @@ fn close_topic_subscription_response() {
                transport_header);
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(258), request_response_header);
+    assert_eq!(RequestResponseHeader::new(259), request_response_header);
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(MessageHeader::new(0, 11, 0, 1), message_header);
+    assert_eq!(ControlMessageResponse::message_header(), message_header);
+
+    let response = ControlMessageResponse::from_bytes(&mut reader).unwrap();
+    let subscription = CloseSubscription::from_data(&response).unwrap();
+
+    assert_eq!(CloseSubscription::new("default-topic".to_string(), 0, 123),
+               subscription);
+
+    assert_eq!(data_frame_header.padding(), reader.len());
 }
 
 #[test]

@@ -2,7 +2,7 @@ extern crate unterflow_protocol;
 #[macro_use]
 extern crate unterflow_protocol_derive;
 
-use unterflow_protocol::io::{FromBytes, HasBlockLength, Message, ToBytes};
+use unterflow_protocol::io::{Data, FromBytes, HasBlockLength, HasData, Message, ToBytes};
 
 
 #[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
@@ -31,7 +31,7 @@ enum EnumWithTypeAndCustomValues {
     B = 16,
 }
 
-#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message)]
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData)]
 #[message(template_id = "12", schema_id = "24", version = "36")]
 struct Struct {
     a: u8,
@@ -46,6 +46,31 @@ struct Struct {
     j: EnumWithType,
     k: EnumWithCustomValues,
     l: EnumWithTypeAndCustomValues,
+    data: Data,
+}
+
+impl Struct {
+    fn test() -> Self {
+        Struct {
+            a: 1,
+            b: 2,
+            c: 256,
+            d: 512,
+            e: 65_536,
+            f: 131_072,
+            g: 16_777_216,
+            h: 33_554_432,
+            i: Enum::B,
+            j: EnumWithType::B,
+            k: EnumWithCustomValues::B,
+            l: EnumWithTypeAndCustomValues::B,
+            data: Data::from(vec![1, 2, 3]),
+        }
+    }
+
+    fn test_bytes() -> Vec<u8> {
+        vec![1, 2, 0, 1, 0, 2, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 1, 0, 0, 0, 16, 16, 0, 3, 0, 1, 2, 3]
+    }
 }
 
 #[test]
@@ -74,44 +99,18 @@ fn from_bytes_enum_error() {
 
 #[test]
 fn from_bytes_struct() {
-    let mut buffer: &[u8] = &[1, 2, 0, 1, 0, 2, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 1, 0, 0, 0, 16, 16, 0];
+    let mut buffer: &[u8] = &Struct::test_bytes();
 
-    let expected = Struct {
-        a: 1,
-        b: 2,
-        c: 256,
-        d: 512,
-        e: 65_536,
-        f: 131_072,
-        g: 16_777_216,
-        h: 33_554_432,
-        i: Enum::B,
-        j: EnumWithType::B,
-        k: EnumWithCustomValues::B,
-        l: EnumWithTypeAndCustomValues::B,
-    };
+    let expected = Struct::test();
 
     assert_eq!(expected, Struct::from_bytes(&mut buffer).unwrap());
 }
 
 #[test]
 fn to_bytes_struct() {
-    let expected = vec![1, 2, 0, 1, 0, 2, 0, 0, 1, 0, 0, 0, 2, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 2, 0, 0, 0, 0, 1, 1, 0, 0, 0, 16, 16, 0];
+    let expected = Struct::test_bytes();
 
-    let s = Struct {
-        a: 1,
-        b: 2,
-        c: 256,
-        d: 512,
-        e: 65_536,
-        f: 131_072,
-        g: 16_777_216,
-        h: 33_554_432,
-        i: Enum::B,
-        j: EnumWithType::B,
-        k: EnumWithCustomValues::B,
-        l: EnumWithTypeAndCustomValues::B,
-    };
+    let s = Struct::test();
 
     let mut buffer = vec![];
 
@@ -127,6 +126,11 @@ fn has_block_length() {
     assert_eq!(1, EnumWithCustomValues::block_length());
     assert_eq!(2, EnumWithTypeAndCustomValues::block_length());
     assert_eq!(38, Struct::block_length());
+}
+
+#[test]
+fn has_data() {
+    assert_eq!(&Data::from(vec![1, 2, 3]), Struct::test().data());
 }
 
 #[test]

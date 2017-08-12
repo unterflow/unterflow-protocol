@@ -5,4 +5,9 @@ version = "0.1.0"
 
 [dependencies]
 byteorder = "1.1.0"
-unterflow-protocol-derive = { path = "unterflow-protocol-derive" }
+rmp-serde = "0.13.6"
+serde = "1.0.11"
+serde_derive = "1.0.11"
+
+[dependencies.unterflow-protocol-derive]
+path = "unterflow-protocol-derive"

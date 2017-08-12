@@ -1,4 +1,4 @@
-use io::{Data, FromBytes, HasBlockLength, Message, ToBytes};
+use io::{Data, FromBytes, HasBlockLength, HasData, Message, ToBytes};
 
 #[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
 pub struct MessageHeader {
@@ -48,12 +48,13 @@ pub enum ControlMessageType {
     RequestTopology,
 }
 
-#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message)]
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData)]
 #[message(template_id = "10", schema_id = "0", version = "1")]
 pub struct ControlMessageRequest {
     message_type: ControlMessageType,
     data: Data,
 }
+
 
 impl ControlMessageRequest {
     pub fn new<T>(message_type: ControlMessageType, data: T) -> Self
@@ -67,6 +68,20 @@ impl ControlMessageRequest {
 
     pub fn message_type(&self) -> &ControlMessageType {
         &self.message_type
+    }
+}
+
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData)]
+#[message(template_id = "11", schema_id = "0", version = "1")]
+pub struct ControlMessageResponse {
+    data: Data,
+}
+
+impl ControlMessageResponse {
+    pub fn new<T>(data: T) -> Self
+        where T: Into<Data>
+    {
+        ControlMessageResponse { data: data.into() }
     }
 }
 
@@ -115,16 +130,31 @@ mod test {
         assert_eq!(request,
                    ControlMessageRequest::from_bytes(&mut &buffer[..]).unwrap());
 
-        assert_eq!(1, ControlMessageRequest::block_length());
-        assert_eq!(10, ControlMessageRequest::template_id());
-        assert_eq!(0, ControlMessageRequest::schema_id());
-        assert_eq!(1, ControlMessageRequest::version());
-
         assert_eq!(MessageHeader::new(1, 10, 0, 1),
                    ControlMessageRequest::message_header());
 
         assert_eq!(&ControlMessageType::RemoveTaskSubscription,
                    request.message_type());
+    }
+
+    #[test]
+    fn test_control_message_response() {
+        let mut buffer = vec![];
+
+        buffer.write_u16::<LittleEndian>(2).unwrap();
+        buffer.write_all(&[12, 13]).unwrap();
+
+        let response = ControlMessageResponse::new(vec![12, 13]);
+
+        let mut bytes = vec![];
+        response.to_bytes(&mut bytes).unwrap();
+
+        assert_eq!(buffer, bytes);
+        assert_eq!(response,
+                   ControlMessageResponse::from_bytes(&mut &buffer[..]).unwrap());
+
+        assert_eq!(MessageHeader::new(0, 11, 0, 1),
+                   ControlMessageResponse::message_header());
     }
 
 }
