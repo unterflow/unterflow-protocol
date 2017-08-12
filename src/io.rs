@@ -179,7 +179,7 @@ impl HasBlockLength for i64 {
     }
 }
 
-#[derive(Debug, PartialEq, Default)]
+#[derive(Debug, PartialEq, Default, Serialize, Deserialize)]
 pub struct Data(Vec<u8>);
 
 impl ::std::ops::Deref for Data {

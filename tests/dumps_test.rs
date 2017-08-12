@@ -91,7 +91,17 @@ fn create_task_request() {
     assert_eq!(RequestResponseHeader::new(257), request_response_header);
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(MessageHeader::new(19, 20, 0, 1), message_header);
+    assert_eq!(ExecuteCommandRequest::message_header(), message_header);
+
+    let request = ExecuteCommandRequest::from_bytes(&mut reader).unwrap();
+    let task = TaskEvent::from_data(&request).unwrap();
+    let mut expected = TaskEvent::new("CREATE", "foo", 3);
+    expected.add_custom_header("k1", "a");
+    expected.add_custom_header("k2", "b");
+    expected.set_payload(vec![129, 167, 112, 97, 121, 108, 111, 97, 100, 123]);
+    assert_eq!(expected, task);
+
+    assert_eq!(data_frame_header.padding(), reader.len());
 }
 
 #[test]
@@ -112,7 +122,17 @@ fn create_task_response() {
     assert_eq!(RequestResponseHeader::new(257), request_response_header);
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(MessageHeader::new(18, 21, 0, 1), message_header);
+    assert_eq!(ExecuteCommandResponse::message_header(), message_header);
+
+    let response = ExecuteCommandResponse::from_bytes(&mut reader).unwrap();
+    let task = TaskEvent::from_data(&response).unwrap();
+    let mut expected = TaskEvent::new("CREATED", "foo", 3);
+    expected.add_custom_header("k1", "a");
+    expected.add_custom_header("k2", "b");
+    expected.set_payload(vec![129, 167, 112, 97, 121, 108, 111, 97, 100, 123]);
+    assert_eq!(expected, task);
+
+    assert_eq!(data_frame_header.padding(), reader.len());
 }
 
 #[test]
@@ -273,7 +293,14 @@ fn open_topic_subscription_request() {
     assert_eq!(RequestResponseHeader::new(258), request_response_header);
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(MessageHeader::new(19, 20, 0, 1), message_header);
+    assert_eq!(ExecuteCommandRequest::message_header(), message_header);
+
+    let request = ExecuteCommandRequest::from_bytes(&mut reader).unwrap();
+    let subscriber = TopicSubscriber::from_data(&request).unwrap();
+    assert_eq!(TopicSubscriber::new(0, "foo".to_string(), 32, false),
+               subscriber);
+
+    assert_eq!(data_frame_header.padding(), reader.len());
 }
 
 #[test]
@@ -294,7 +321,15 @@ fn open_topic_subscription_response() {
     assert_eq!(RequestResponseHeader::new(258), request_response_header);
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(MessageHeader::new(18, 21, 0, 1), message_header);
+    assert_eq!(ExecuteCommandResponse::message_header(), message_header);
+
+    let response = ExecuteCommandResponse::from_bytes(&mut reader).unwrap();
+    let subscriber = TopicSubscriber::from_data(&response).unwrap();
+    assert_eq!(TopicSubscriber::new(0, "foo".to_string(), 32, false),
+               subscriber);
+
+
+    assert_eq!(data_frame_header.padding(), reader.len());
 }
 
 #[test]

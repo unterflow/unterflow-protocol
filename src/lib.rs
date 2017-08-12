@@ -2,6 +2,7 @@ extern crate byteorder;
 extern crate serde;
 #[macro_use]
 extern crate serde_derive;
+extern crate serde_bytes;
 extern crate rmp_serde;
 #[macro_use]
 extern crate unterflow_protocol_derive;

@@ -1,18 +1,20 @@
-#![allow(non_snake_case)]
+use serde_bytes::ByteBuf;
+use std::collections::HashMap;
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct TopologyRequest {}
 
 #[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
 #[serde(default)]
+#[serde(rename_all = "camelCase")]
 pub struct TopologyResponse {
-    topicLeaders: Vec<TopicLeader>,
+    topic_leaders: Vec<TopicLeader>,
     brokers: Vec<SocketAddress>,
 }
 
 impl TopologyResponse {
     pub fn topic_leaders(&self) -> &Vec<TopicLeader> {
-        &self.topicLeaders
+        &self.topic_leaders
     }
 
     pub fn brokers(&self) -> &Vec<SocketAddress> {
@@ -22,11 +24,12 @@ impl TopologyResponse {
 
 #[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
 #[serde(default)]
+#[serde(rename_all = "camelCase")]
 pub struct TopicLeader {
     host: String,
     port: u16,
-    topicName: String,
-    partitionId: u16,
+    topic_name: String,
+    partition_id: u16,
 }
 
 impl TopicLeader {
@@ -34,14 +37,15 @@ impl TopicLeader {
         TopicLeader {
             host,
             port,
-            topicName: topic_name,
-            partitionId: partition_id,
+            topic_name,
+            partition_id: partition_id,
         }
     }
 }
 
 #[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
 #[serde(default)]
+#[serde(rename_all = "camelCase")]
 pub struct SocketAddress {
     host: String,
     port: u16,
@@ -55,40 +59,41 @@ impl SocketAddress {
 
 #[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
 #[serde(default)]
+#[serde(rename_all = "camelCase")]
 pub struct TaskSubscription {
-    topicName: String,
-    partitionId: u32,
-    subscriberKey: u64,
-    taskType: String,
-    lockDuration: u64,
-    lockOwner: String,
+    topic_name: String,
+    partition_id: u32,
+    subscriber_key: u64,
+    task_type: String,
+    lock_duration: u64,
+    lock_owner: String,
     credits: u32,
 }
 
 impl TaskSubscription {
-    pub fn for_topic(topicName: String, partitionId: u32) -> Self {
+    pub fn for_topic(topic_name: String, partition_id: u32) -> Self {
         TaskSubscription {
-            topicName,
-            partitionId,
+            topic_name,
+            partition_id,
             ..Default::default()
         }
     }
 
-    pub fn new(topicName: String,
-               partitionId: u32,
-               taskType: String,
-               lockOwner: String,
-               lockDuration: u64,
-               subscriberKey: u64,
+    pub fn new(topic_name: String,
+               partition_id: u32,
+               task_type: String,
+               lock_owner: String,
+               lock_duration: u64,
+               subscriber_key: u64,
                credits: u32)
                -> Self {
         TaskSubscription {
-            topicName,
-            partitionId,
-            subscriberKey,
-            taskType,
-            lockDuration,
-            lockOwner,
+            topic_name,
+            partition_id,
+            subscriber_key,
+            task_type,
+            lock_duration,
+            lock_owner,
             credits,
         }
     }
@@ -97,38 +102,115 @@ impl TaskSubscription {
 
 #[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
 #[serde(default)]
+#[serde(rename_all = "camelCase")]
 pub struct TopicSubscriber {
-    startPosition: u64,
+    start_position: u64,
     name: String,
-    prefetchCapacity: u32,
-    forceStart: bool,
+    prefetch_capacity: u32,
+    force_start: bool,
 }
 
 impl TopicSubscriber {
-    pub fn new(startPosition: u64, name: String, prefetchCapacity: u32, forceStart: bool) -> Self {
+    pub fn new(start_position: u64, name: String, prefetch_capacity: u32, force_start: bool) -> Self {
         TopicSubscriber {
-            startPosition,
+            start_position,
             name,
-            prefetchCapacity,
-            forceStart,
+            prefetch_capacity,
+            force_start,
         }
     }
 }
 
 #[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
 #[serde(default)]
+#[serde(rename_all = "camelCase")]
 pub struct CloseSubscription {
-    topicName: String,
-    partitionId: u32,
-    subscriberKey: u64,
+    topic_name: String,
+    partition_id: u32,
+    subscriber_key: u64,
 }
 
 impl CloseSubscription {
-    pub fn new(topicName: String, partitionId: u32, subscriberKey: u64) -> Self {
+    pub fn new(topic_name: String, partition_id: u32, subscriber_key: u64) -> Self {
         CloseSubscription {
-            topicName,
-            partitionId,
-            subscriberKey,
+            topic_name,
+            partition_id,
+            subscriber_key,
         }
+    }
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[serde(default)]
+#[serde(rename_all = "camelCase")]
+struct TaskHeaders {
+    workflow_instance_key: i64,
+    bpmn_process_id: String,
+    workflow_definition_version: i64,
+    workflow_key: i64,
+    activity_id: String,
+    activity_instance_key: i64,
+}
+
+impl Default for TaskHeaders {
+    fn default() -> Self {
+        TaskHeaders {
+            workflow_instance_key: -1,
+            bpmn_process_id: String::new(),
+            workflow_definition_version: -1,
+            workflow_key: -1,
+            activity_id: String::new(),
+            activity_instance_key: -1,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[serde(default)]
+#[serde(rename_all = "camelCase")]
+pub struct TaskEvent {
+    state: String,
+    lock_time: i64,
+    lock_owner: String,
+    retries: i32,
+    #[serde(rename = "type")]
+    task_type: String,
+    headers: TaskHeaders,
+    // TODO(menski): this is probably not a string/string hash map
+    custom_headers: HashMap<String, String>,
+    payload: ByteBuf,
+}
+
+impl Default for TaskEvent {
+    fn default() -> Self {
+        TaskEvent {
+            state: String::new(),
+            lock_time: i64::min_value(),
+            lock_owner: String::new(),
+            retries: -1,
+            task_type: String::new(),
+            headers: TaskHeaders::default(),
+            custom_headers: Default::default(),
+            payload: Default::default(),
+        }
+    }
+}
+
+impl TaskEvent {
+    pub fn new<S: Into<String>>(state: S, task_type: S, retries: i32) -> Self {
+        TaskEvent {
+            state: state.into(),
+            task_type: task_type.into(),
+            retries,
+            ..Default::default()
+        }
+    }
+
+    pub fn set_payload<B: Into<ByteBuf>>(&mut self, payload: B) {
+        self.payload = payload.into();
+    }
+
+    pub fn add_custom_header<S: Into<String>>(&mut self, key: S, value: S) {
+        self.custom_headers.insert(key.into(), value.into());
     }
 }

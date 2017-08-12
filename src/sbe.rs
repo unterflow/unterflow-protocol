@@ -22,6 +22,7 @@ impl MessageHeader {
 pub trait ToMessageHeader {
     fn message_header() -> MessageHeader;
 }
+
 impl<'a, T: Message + HasBlockLength> From<&'a T> for MessageHeader {
     fn from(_: &'a T) -> Self {
         T::message_header()
@@ -55,7 +56,6 @@ pub struct ControlMessageRequest {
     data: Data,
 }
 
-
 impl ControlMessageRequest {
     pub fn new<T>(message_type: ControlMessageType, data: T) -> Self
         where T: Into<Data>
@@ -82,6 +82,82 @@ impl ControlMessageResponse {
         where T: Into<Data>
     {
         ControlMessageResponse { data: data.into() }
+    }
+}
+
+
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
+pub enum EventType {
+    TaskEvent,
+    RaftEvent,
+    SubscriptionEvent,
+    SubscriberEvent,
+    DeploymentEvent,
+    WorkflowInstanceEvent,
+    IncidentEvent,
+    WorkflowEvent,
+    NoopEvent,
+}
+
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message)]
+#[message(template_id = "20", schema_id = "0", version = "1")]
+pub struct ExecuteCommandRequest {
+    partition_id: u16,
+    position: u64,
+    key: u64,
+    event_type: EventType,
+    topic_name: String,
+    command: Data,
+}
+
+impl ExecuteCommandRequest {
+    pub fn new<T>(topic_name: String, partition_id: u16, position: u64, key: u64, event_type: EventType, command: T) -> Self
+        where T: Into<Data>
+    {
+        ExecuteCommandRequest {
+            topic_name,
+            partition_id,
+            position,
+            key,
+            event_type,
+            command: command.into(),
+        }
+    }
+}
+
+impl HasData for ExecuteCommandRequest {
+    fn data(&self) -> &Data {
+        &self.command
+    }
+}
+
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message)]
+#[message(template_id = "21", schema_id = "0", version = "1")]
+pub struct ExecuteCommandResponse {
+    partition_id: u16,
+    position: u64,
+    key: u64,
+    topic_name: String,
+    event: Data,
+}
+
+impl ExecuteCommandResponse {
+    pub fn new<T>(topic_name: String, partition_id: u16, position: u64, key: u64, event: T) -> Self
+        where T: Into<Data>
+    {
+        ExecuteCommandResponse {
+            topic_name,
+            partition_id,
+            position,
+            key,
+            event: event.into(),
+        }
+    }
+}
+
+impl HasData for ExecuteCommandResponse {
+    fn data(&self) -> &Data {
+        &self.event
     }
 }
 
@@ -155,6 +231,62 @@ mod test {
 
         assert_eq!(MessageHeader::new(0, 11, 0, 1),
                    ControlMessageResponse::message_header());
+    }
+
+    #[test]
+    fn test_execute_command_request() {
+        let mut buffer = vec![];
+
+        buffer.write_u16::<LittleEndian>(1).unwrap();
+        buffer.write_u64::<LittleEndian>(2).unwrap();
+        buffer.write_u64::<LittleEndian>(3).unwrap();
+        buffer.write_u8(3).unwrap();
+        buffer.write_u16::<LittleEndian>(3).unwrap();
+        buffer.write_all("foo".as_bytes()).unwrap();
+        buffer.write_u16::<LittleEndian>(3).unwrap();
+        buffer.write_all(&[1, 2, 3]).unwrap();
+
+        let request = ExecuteCommandRequest::new("foo".to_string(),
+                                                 1,
+                                                 2,
+                                                 3,
+                                                 EventType::SubscriberEvent,
+                                                 vec![1, 2, 3]);
+
+        let mut bytes = vec![];
+        request.to_bytes(&mut bytes).unwrap();
+
+        assert_eq!(buffer, bytes);
+        assert_eq!(request,
+                   ExecuteCommandRequest::from_bytes(&mut &buffer[..]).unwrap());
+
+        assert_eq!(MessageHeader::new(19, 20, 0, 1),
+                   ExecuteCommandRequest::message_header());
+    }
+
+    #[test]
+    fn test_execute_command_response() {
+        let mut buffer = vec![];
+
+        buffer.write_u16::<LittleEndian>(1).unwrap();
+        buffer.write_u64::<LittleEndian>(2).unwrap();
+        buffer.write_u64::<LittleEndian>(3).unwrap();
+        buffer.write_u16::<LittleEndian>(3).unwrap();
+        buffer.write_all("foo".as_bytes()).unwrap();
+        buffer.write_u16::<LittleEndian>(3).unwrap();
+        buffer.write_all(&[1, 2, 3]).unwrap();
+
+        let response = ExecuteCommandResponse::new("foo".to_string(), 1, 2, 3, vec![1, 2, 3]);
+
+        let mut bytes = vec![];
+        response.to_bytes(&mut bytes).unwrap();
+
+        assert_eq!(buffer, bytes);
+        assert_eq!(response,
+                   ExecuteCommandResponse::from_bytes(&mut &buffer[..]).unwrap());
+
+        assert_eq!(MessageHeader::new(18, 21, 0, 1),
+                   ExecuteCommandResponse::message_header());
     }
 
 }
