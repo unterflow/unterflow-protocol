@@ -164,10 +164,95 @@ impl HasBlockLength for i64 {
     }
 }
 
+#[derive(Debug, PartialEq, Default)]
+pub struct Data(Vec<u8>);
+
+impl ::std::ops::Deref for Data {
+    type Target = Vec<u8>;
+    fn deref(&self) -> &Vec<u8> {
+        &self.0
+    }
+}
+
+impl From<Data> for Vec<u8> {
+    fn from(data: Data) -> Self {
+        data.0
+    }
+}
+
+impl From<Vec<u8>> for Data {
+    fn from(vec: Vec<u8>) -> Self {
+        Data(vec)
+    }
+}
+
+impl FromBytes for Data {
+    fn from_bytes(reader: &mut Read) -> Result<Self, io::Error> {
+        let length = reader.read_u16::<LittleEndian>()?;
+        let mut buffer = Vec::with_capacity(length as usize);
+        let mut handle = reader.take(length as u64);
+        handle.read_to_end(&mut buffer)?;
+        Ok(Data(buffer))
+    }
+}
+
+impl ToBytes for Data {
+    fn to_bytes(&self, writer: &mut Write) -> Result<(), io::Error> {
+        let length = self.0.len() as u16;
+        writer.write_u16::<LittleEndian>(length)?;
+        writer.write_all(&self.0)
+    }
+}
+
+impl FromBytes for String {
+    fn from_bytes(reader: &mut Read) -> Result<Self, io::Error> {
+        let buffer: Data = FromBytes::from_bytes(reader)?;
+
+        String::from_utf8(buffer.to_vec()).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))
+    }
+}
+
+impl ToBytes for String {
+    fn to_bytes(&self, writer: &mut Write) -> Result<(), io::Error> {
+        let length = self.len() as u16;
+        writer.write_u16::<LittleEndian>(length)?;
+        writer.write_all(self.as_bytes())
+    }
+}
+
+impl<T: FromBytes> FromBytes for Vec<T> {
+    fn from_bytes(reader: &mut Read) -> Result<Self, io::Error> {
+        let _block_length = reader.read_u16::<LittleEndian>()?;
+        let num_in_group = reader.read_u8()?;
+        let mut group: Vec<T> = Vec::with_capacity(num_in_group as usize);
+        for _ in 0..num_in_group {
+            group.push(T::from_bytes(reader)?);
+        }
+        Ok(group)
+    }
+}
+
+impl<T: ToBytes + HasBlockLength> ToBytes for Vec<T> {
+    fn to_bytes(&self, writer: &mut Write) -> Result<(), io::Error> {
+        writer.write_u16::<LittleEndian>(T::block_length())?;
+
+        let length = self.len() as u8;
+        writer.write_u8(length)?;
+
+        for element in self {
+            element.to_bytes(writer)?;
+        }
+
+        Ok(())
+    }
+}
+
 #[cfg(test)]
 mod test {
 
-    use super::{FromBytes, HasBlockLength, ToBytes};
+    use super::{Data, FromBytes, HasBlockLength, ToBytes};
+    use byteorder::{LittleEndian, WriteBytesExt};
+    use io::Write;
 
     #[test]
     fn from_bytes_u8() {
@@ -295,6 +380,75 @@ mod test {
         let mut buffer = vec![];
         16777216i64.to_bytes(&mut buffer).unwrap();
         assert_eq!(vec![0, 0, 0, 1, 0, 0, 0, 0], buffer);
+    }
+
+    #[test]
+    fn from_bytes_string() {
+        let expected = "foobar".to_string();
+
+        let mut buffer = vec![];
+        buffer.write_u16::<LittleEndian>(6).unwrap();
+        buffer.write_all(expected.as_bytes()).unwrap();
+
+        assert_eq!(expected, String::from_bytes(&mut &buffer[..]).unwrap());
+    }
+
+    #[test]
+    fn to_bytes_string() {
+        let s = "foobar".to_string();
+
+        let mut buffer = vec![];
+        s.to_bytes(&mut buffer).unwrap();
+
+        assert_eq!(vec![6, 0, 102, 111, 111, 98, 97, 114], buffer);
+    }
+
+    #[test]
+    fn from_bytes_data() {
+        let expected = Data::from(vec![1, 2, 3, 4]);
+
+        let mut buffer = vec![];
+        buffer.write_u16::<LittleEndian>(4).unwrap();
+        buffer.write_all(&expected).unwrap();
+
+        assert_eq!(expected, Data::from_bytes(&mut &buffer[..]).unwrap());
+    }
+
+    #[test]
+    fn to_bytes_data() {
+        let data = Data::from(vec![1, 2, 3, 4]);
+        let mut buffer = vec![];
+
+        data.to_bytes(&mut buffer).unwrap();
+
+        assert_eq!(vec![4, 0, 1, 2, 3, 4], buffer);
+    }
+
+    #[test]
+    fn from_bytes_collection() {
+        let expected = vec![1u32, 2u32, 3u32, 4u32];
+
+        let mut buffer = vec![];
+        buffer
+            .write_u16::<LittleEndian>(u32::block_length())
+            .unwrap();
+        buffer.write_u8(expected.len() as u8).unwrap();
+        buffer.write_u32::<LittleEndian>(1).unwrap();
+        buffer.write_u32::<LittleEndian>(2).unwrap();
+        buffer.write_u32::<LittleEndian>(3).unwrap();
+        buffer.write_u32::<LittleEndian>(4).unwrap();
+
+        assert_eq!(expected, Vec::<u32>::from_bytes(&mut &buffer[..]).unwrap());
+    }
+
+    #[test]
+    fn to_bytes_collection() {
+        let c = vec![1u16, 2u16, 3u16, 4u16];
+
+        let mut buffer = vec![];
+        c.to_bytes(&mut buffer).unwrap();
+
+        assert_eq!(vec![2, 0, 4, 1, 0, 2, 0, 3, 0, 4, 0], buffer);
     }
 
     #[test]
