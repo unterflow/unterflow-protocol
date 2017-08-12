@@ -1,5 +1,6 @@
 use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use std::io::{self, Read, Write};
+use std::mem::size_of;
 
 pub trait FromBytes {
     fn from_bytes(reader: &mut Read) -> Result<Self, io::Error> where Self: Sized;
@@ -7,6 +8,10 @@ pub trait FromBytes {
 
 pub trait ToBytes {
     fn to_bytes(&self, writer: &mut Write) -> Result<(), io::Error>;
+}
+
+pub trait HasBlockLength {
+    fn block_length() -> u16;
 }
 
 impl FromBytes for u8 {
@@ -18,6 +23,12 @@ impl FromBytes for u8 {
 impl ToBytes for u8 {
     fn to_bytes(&self, writer: &mut Write) -> Result<(), io::Error> {
         writer.write_u8(*self)
+    }
+}
+
+impl HasBlockLength for u8 {
+    fn block_length() -> u16 {
+        size_of::<u8>() as u16
     }
 }
 
@@ -33,6 +44,12 @@ impl ToBytes for i8 {
     }
 }
 
+impl HasBlockLength for i8 {
+    fn block_length() -> u16 {
+        size_of::<i8>() as u16
+    }
+}
+
 impl FromBytes for u16 {
     fn from_bytes(reader: &mut Read) -> Result<Self, io::Error> {
         reader.read_u16::<LittleEndian>()
@@ -42,6 +59,12 @@ impl FromBytes for u16 {
 impl ToBytes for u16 {
     fn to_bytes(&self, writer: &mut Write) -> Result<(), io::Error> {
         writer.write_u16::<LittleEndian>(*self)
+    }
+}
+
+impl HasBlockLength for u16 {
+    fn block_length() -> u16 {
+        size_of::<u16>() as u16
     }
 }
 
@@ -57,6 +80,12 @@ impl ToBytes for i16 {
     }
 }
 
+impl HasBlockLength for i16 {
+    fn block_length() -> u16 {
+        size_of::<i16>() as u16
+    }
+}
+
 impl FromBytes for u32 {
     fn from_bytes(reader: &mut Read) -> Result<Self, io::Error> {
         reader.read_u32::<LittleEndian>()
@@ -66,6 +95,12 @@ impl FromBytes for u32 {
 impl ToBytes for u32 {
     fn to_bytes(&self, writer: &mut Write) -> Result<(), io::Error> {
         writer.write_u32::<LittleEndian>(*self)
+    }
+}
+
+impl HasBlockLength for u32 {
+    fn block_length() -> u16 {
+        size_of::<u32>() as u16
     }
 }
 
@@ -81,6 +116,12 @@ impl ToBytes for i32 {
     }
 }
 
+impl HasBlockLength for i32 {
+    fn block_length() -> u16 {
+        size_of::<i32>() as u16
+    }
+}
+
 impl FromBytes for u64 {
     fn from_bytes(reader: &mut Read) -> Result<Self, io::Error> {
         reader.read_u64::<LittleEndian>()
@@ -90,6 +131,12 @@ impl FromBytes for u64 {
 impl ToBytes for u64 {
     fn to_bytes(&self, writer: &mut Write) -> Result<(), io::Error> {
         writer.write_u64::<LittleEndian>(*self)
+    }
+}
+
+impl HasBlockLength for u64 {
+    fn block_length() -> u16 {
+        size_of::<u64>() as u16
     }
 }
 
@@ -105,10 +152,16 @@ impl ToBytes for i64 {
     }
 }
 
+impl HasBlockLength for i64 {
+    fn block_length() -> u16 {
+        size_of::<i64>() as u16
+    }
+}
+
 #[cfg(test)]
 mod test {
 
-    use super::{FromBytes, ToBytes};
+    use super::{FromBytes, HasBlockLength, ToBytes};
 
     #[test]
     fn from_bytes_u8() {
@@ -236,6 +289,18 @@ mod test {
         let mut buffer = vec![];
         16777216i64.to_bytes(&mut buffer).unwrap();
         assert_eq!(vec![0, 0, 0, 1, 0, 0, 0, 0], buffer);
+    }
+
+    #[test]
+    fn has_block_length() {
+        assert_eq!(1, u8::block_length());
+        assert_eq!(1, i8::block_length());
+        assert_eq!(2, u16::block_length());
+        assert_eq!(2, i16::block_length());
+        assert_eq!(4, u32::block_length());
+        assert_eq!(4, i32::block_length());
+        assert_eq!(8, u64::block_length());
+        assert_eq!(8, i64::block_length());
     }
 
 
