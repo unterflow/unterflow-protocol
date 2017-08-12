@@ -26,8 +26,16 @@ impl DataFrameHeader {
         }
     }
 
-    pub fn aligned_length(&self) -> u32 {
-        align(self.length + Self::block_length() as u32)
+    pub fn length(&self) -> usize {
+        self.length as usize
+    }
+
+    pub fn aligned_length(&self) -> usize {
+        align(self.length() + Self::block_length() as usize)
+    }
+
+    pub fn padding(&self) -> usize {
+        self.aligned_length() - self.length() - Self::block_length() as usize
     }
 
     pub fn is_batch_begin(&self) -> bool {
@@ -81,7 +89,13 @@ impl RequestResponseHeader {
     }
 }
 
-pub fn align(value: u32) -> u32 {
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
+#[enum_type = "u32"]
+pub enum ControlMessage {
+    KeepAlive,
+}
+
+pub fn align(value: usize) -> usize {
     (value + 7) & !7
 }
 

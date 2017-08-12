@@ -18,7 +18,7 @@ fn topology_request() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(DataFrameHeader::new(22, 0, 0, 0, 0), data_frame_header);
-    assert_eq!(dump_length, data_frame_header.aligned_length() as usize);
+    assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
@@ -36,7 +36,7 @@ fn topology_response() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(DataFrameHeader::new(125, 0, 0, 0, 0), data_frame_header);
-    assert_eq!(dump_length, data_frame_header.aligned_length() as usize);
+    assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
@@ -54,7 +54,7 @@ fn create_task_request() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(DataFrameHeader::new(158, 0, 0, 0, 1), data_frame_header);
-    assert_eq!(dump_length, data_frame_header.aligned_length() as usize);
+    assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
@@ -72,7 +72,7 @@ fn create_task_response() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(DataFrameHeader::new(278, 0, 0, 0, 1), data_frame_header);
-    assert_eq!(dump_length, data_frame_header.aligned_length() as usize);
+    assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
@@ -90,7 +90,7 @@ fn open_task_subscription_request() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(DataFrameHeader::new(129, 0, 0, 0, 1), data_frame_header);
-    assert_eq!(dump_length, data_frame_header.aligned_length() as usize);
+    assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
@@ -108,7 +108,7 @@ fn open_task_subscription_response() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(DataFrameHeader::new(128, 0, 0, 0, 1), data_frame_header);
-    assert_eq!(dump_length, data_frame_header.aligned_length() as usize);
+    assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
@@ -126,7 +126,7 @@ fn close_task_subscription_request() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(DataFrameHeader::new(97, 0, 0, 0, 1), data_frame_header);
-    assert_eq!(dump_length, data_frame_header.aligned_length() as usize);
+    assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
@@ -144,7 +144,7 @@ fn close_task_subscription_response() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(DataFrameHeader::new(124, 0, 0, 0, 1), data_frame_header);
-    assert_eq!(dump_length, data_frame_header.aligned_length() as usize);
+    assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
@@ -162,7 +162,7 @@ fn open_topic_subscription_request() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(DataFrameHeader::new(125, 0, 0, 0, 1), data_frame_header);
-    assert_eq!(dump_length, data_frame_header.aligned_length() as usize);
+    assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
@@ -180,7 +180,7 @@ fn open_topic_subscription_response() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(DataFrameHeader::new(133, 0, 0, 0, 1), data_frame_header);
-    assert_eq!(dump_length, data_frame_header.aligned_length() as usize);
+    assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
@@ -198,7 +198,7 @@ fn close_topic_subscription_request() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(DataFrameHeader::new(82, 0, 0, 0, 1), data_frame_header);
-    assert_eq!(dump_length, data_frame_header.aligned_length() as usize);
+    assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
@@ -216,7 +216,7 @@ fn close_topic_subscription_response() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(DataFrameHeader::new(81, 0, 0, 0, 1), data_frame_header);
-    assert_eq!(dump_length, data_frame_header.aligned_length() as usize);
+    assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::RequestResponse),
@@ -234,11 +234,16 @@ fn keep_alive() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(DataFrameHeader::new(6, 0, 0, 0, 0), data_frame_header);
-    assert_eq!(dump_length, data_frame_header.aligned_length() as usize);
+    assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::ControlMessage),
                transport_header);
+
+    let control_message = ControlMessage::from_bytes(&mut reader).unwrap();
+    assert_eq!(ControlMessage::KeepAlive, control_message);
+
+    assert_eq!(data_frame_header.padding(), reader.len());
 }
 
 #[test]
@@ -249,7 +254,7 @@ fn append_request() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(DataFrameHeader::new(218, 0, 0, 0, 0), data_frame_header);
-    assert_eq!(dump_length, data_frame_header.aligned_length() as usize);
+    assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(TransportHeader::new(TransportProtocol::FullDuplexSingleMessage),
