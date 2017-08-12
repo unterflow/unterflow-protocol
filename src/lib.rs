@@ -43,6 +43,29 @@ impl DataFrameHeader {
     }
 }
 
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
+#[enum_type = "u16"]
+pub enum TransportProtocol {
+    RequestResponse,
+    FullDuplexSingleMessage,
+    ControlMessage,
+}
+
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
+pub struct TransportHeader {
+    protocol: TransportProtocol,
+}
+
+impl TransportHeader {
+    pub fn new(protocol: TransportProtocol) -> Self {
+        TransportHeader { protocol }
+    }
+
+    pub fn protocol(&self) -> &TransportProtocol {
+        &self.protocol
+    }
+}
+
 pub fn align(value: u32) -> u32 {
     (value + 7) & !7
 }
@@ -89,6 +112,27 @@ mod test {
         assert!(header.is_batch_begin());
         assert!(header.is_batch_end());
         assert!(header.is_failed());
+    }
+
+    #[test]
+    fn test_transport_header() {
+        let mut buffer = vec![];
+
+        buffer.write_u16::<LittleEndian>(1).unwrap();
+
+        let header = TransportHeader::new(TransportProtocol::FullDuplexSingleMessage);
+
+        let mut bytes = vec![];
+        header.to_bytes(&mut bytes).unwrap();
+
+        assert_eq!(buffer, bytes);
+
+        assert_eq!(header,
+                   TransportHeader::from_bytes(&mut &buffer[..]).unwrap());
+
+        assert_eq!(2, TransportHeader::block_length());
+        assert_eq!(&TransportProtocol::FullDuplexSingleMessage,
+                   header.protocol())
     }
 
 }
