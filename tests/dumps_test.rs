@@ -1,7 +1,8 @@
 extern crate unterflow_protocol;
 
-use unterflow_protocol::*;
+use unterflow_protocol::frame::*;
 use unterflow_protocol::io::*;
+use unterflow_protocol::sbe::*;
 
 macro_rules! dump {
     ($reader:ident, $file:expr) => (
@@ -28,7 +29,11 @@ fn topology_request() {
     assert_eq!(RequestResponseHeader::new(256), request_response_header);
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(MessageHeader::new(1, 10, 0, 1), message_header);
+    assert_eq!(ControlMessageRequest::message_header(), message_header);
+
+    let request = ControlMessageRequest::from_bytes(&mut reader).unwrap();
+    assert_eq!(ControlMessageRequest::new(ControlMessageType::RequestTopology, vec![128]),
+               request);
 }
 
 #[test]
