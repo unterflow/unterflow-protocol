@@ -1,19 +1,26 @@
 extern crate unterflow_protocol;
 
+use unterflow_protocol::*;
 use unterflow_protocol::frame::*;
 use unterflow_protocol::io::*;
 use unterflow_protocol::message::*;
 use unterflow_protocol::sbe::*;
 
+macro_rules! dump_vec {
+    ($v:ident, $file:expr) => (
+        let $v = include_bytes!(concat!("dumps/", $file)).to_vec();
+    )
+}
+
 macro_rules! dump {
     ($reader:ident, $file:expr) => (
-        let data = include_bytes!(concat!("dumps/", $file)).to_vec();
+        dump_vec!(data, $file);
         let mut $reader: &[u8] = &data[..];
     )
 }
 
 #[test]
-fn topology_request() {
+fn topology_request_manual() {
     dump!(reader, "topology-request.bin");
 
     let dump_length = reader.len();
@@ -41,7 +48,43 @@ fn topology_request() {
 }
 
 #[test]
-fn topology_response() {
+fn topology_request_read() {
+    dump!(reader, "topology-request.bin");
+
+    let request = TransportMessage::from_bytes(&mut reader).unwrap();
+
+    if let TransportMessage::RequestResponse(request) = request {
+        let message = request.message();
+        if let RequestResponseMessage::ControlMessageRequest(ref message) = *message {
+            let topology = TopologyRequest::from_data(message).unwrap();
+            assert_eq!(TopologyRequest {}, topology);
+            assert_eq!(0, reader.len());
+        } else {
+            panic!("Expected control message request, got {:?}", message);
+        }
+    } else {
+        panic!("Expected request response, got {:?}", request);
+    }
+}
+
+#[test]
+fn topology_request_write() {
+    dump_vec!(expected, "topology-request.bin");
+
+    let mut buffer = vec![];
+
+    let message = ControlMessageType::RequestTopology
+        .with(TopologyRequest {})
+        .unwrap();
+    let request = TransportMessage::request(256, message);
+
+    request.to_bytes(&mut buffer).unwrap();
+
+    assert_eq!(expected, buffer);
+}
+
+#[test]
+fn topology_response_manual() {
     dump!(reader, "topology-response.bin");
 
     let dump_length = reader.len();
@@ -73,6 +116,34 @@ fn topology_response() {
                topology.brokers());
 
     assert_eq!(data_frame_header.padding(), reader.len());
+}
+
+#[test]
+fn topology_response_read() {
+    dump!(reader, "topology-response.bin");
+
+    let response = TransportMessage::from_bytes(&mut reader).unwrap();
+
+    if let TransportMessage::RequestResponse(response) = response {
+        let message = response.message();
+        if let RequestResponseMessage::ControlMessageResponse(ref message) = *message {
+            let topology = TopologyResponse::from_data(message).unwrap();
+
+            assert_eq!(&vec![TopicLeader::new("0.0.0.0".to_string(),
+                                              51_015,
+                                              "default-topic".to_string(),
+                                              0)],
+                       topology.topic_leaders());
+            assert_eq!(&vec![SocketAddress::new("0.0.0.0".to_string(), 51_015)],
+                       topology.brokers());
+
+            assert_eq!(0, reader.len());
+        } else {
+            panic!("Expected control message response, got {:?}", message);
+        }
+    } else {
+        panic!("Expected request response, got {:?}", response);
+    }
 }
 
 #[test]
