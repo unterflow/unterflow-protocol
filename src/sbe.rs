@@ -1,4 +1,5 @@
 use io::{Data, FromBytes, HasBlockLength, HasData, HasMessageLength, Message, ToBytes, ToData};
+use message::TaskEvent;
 use std;
 
 #[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
@@ -51,11 +52,11 @@ pub enum ControlMessageType {
 }
 
 impl ControlMessageType {
-    pub fn with<D: ToData>(self, data: D) -> Result<ControlMessageRequest, std::io::Error> {
+    pub fn with<D: ToData>(self, data: &D) -> Result<ControlMessageRequest, std::io::Error> {
         Ok(ControlMessageRequest {
-               message_type: self,
-               data: data.to_data()?,
-           })
+            message_type: self,
+            data: data.to_data()?,
+        })
     }
 }
 
@@ -68,7 +69,8 @@ pub struct ControlMessageRequest {
 
 impl ControlMessageRequest {
     pub fn new<T>(message_type: ControlMessageType, data: T) -> Self
-        where T: Into<Data>
+    where
+        T: Into<Data>,
     {
         ControlMessageRequest {
             message_type,
@@ -89,7 +91,8 @@ pub struct ControlMessageResponse {
 
 impl ControlMessageResponse {
     pub fn new<T>(data: T) -> Self
-        where T: Into<Data>
+    where
+        T: Into<Data>,
     {
         ControlMessageResponse { data: data.into() }
     }
@@ -132,6 +135,22 @@ impl ExecuteCommandRequest {
             command: command.into(),
         }
     }
+
+    pub fn complete_task(message: &SubscribedEvent, mut event: TaskEvent) -> Result<Self, std::io::Error> {
+        event.set_state("COMPLETE");
+        if event.payload().is_empty() {
+            event.set_payload(vec![0xc0]);
+        }
+        let command = event.to_data()?;
+        Ok(ExecuteCommandRequest {
+            topic_name: message.topic_name.clone(),
+            partition_id: message.partition_id,
+            position: message.position,
+            key: message.key,
+            event_type: EventType::TaskEvent,
+            command,
+        })
+    }
 }
 
 #[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData, HasMessageLength)]
@@ -147,7 +166,8 @@ pub struct ExecuteCommandResponse {
 
 impl ExecuteCommandResponse {
     pub fn new<T>(topic_name: String, partition_id: u16, position: u64, key: u64, event: T) -> Self
-        where T: Into<Data>
+    where
+        T: Into<Data>,
     {
         ExecuteCommandResponse {
             topic_name,
@@ -194,16 +214,17 @@ pub struct AppendRequest {
 }
 
 impl AppendRequest {
-    pub fn new<S: Into<String>, D: Into<Data>>(topic_name: S,
-                                               partition_id: u16,
-                                               term: u16,
-                                               previous_event_position: u64,
-                                               previous_event_term: i32,
-                                               commit_position: u64,
-                                               host: S,
-                                               port: u16,
-                                               data: D)
-                                               -> Self {
+    pub fn new<S: Into<String>, D: Into<Data>>(
+        topic_name: S,
+        partition_id: u16,
+        term: u16,
+        previous_event_position: u64,
+        previous_event_term: i32,
+        commit_position: u64,
+        host: S,
+        port: u16,
+        data: D,
+    ) -> Self {
         AppendRequest {
             partition_id,
             term,
@@ -262,14 +283,20 @@ mod test {
         request.to_bytes(&mut bytes).unwrap();
 
         assert_eq!(buffer, bytes);
-        assert_eq!(request,
-                   ControlMessageRequest::from_bytes(&mut &buffer[..]).unwrap());
+        assert_eq!(
+            request,
+            ControlMessageRequest::from_bytes(&mut &buffer[..]).unwrap()
+        );
 
-        assert_eq!(MessageHeader::new(1, 10, 0, 1),
-                   ControlMessageRequest::message_header());
+        assert_eq!(
+            MessageHeader::new(1, 10, 0, 1),
+            ControlMessageRequest::message_header()
+        );
 
-        assert_eq!(&ControlMessageType::RemoveTaskSubscription,
-                   request.message_type());
+        assert_eq!(
+            &ControlMessageType::RemoveTaskSubscription,
+            request.message_type()
+        );
     }
 
     #[test]
@@ -285,11 +312,15 @@ mod test {
         response.to_bytes(&mut bytes).unwrap();
 
         assert_eq!(buffer, bytes);
-        assert_eq!(response,
-                   ControlMessageResponse::from_bytes(&mut &buffer[..]).unwrap());
+        assert_eq!(
+            response,
+            ControlMessageResponse::from_bytes(&mut &buffer[..]).unwrap()
+        );
 
-        assert_eq!(MessageHeader::new(0, 11, 0, 1),
-                   ControlMessageResponse::message_header());
+        assert_eq!(
+            MessageHeader::new(0, 11, 0, 1),
+            ControlMessageResponse::message_header()
+        );
     }
 
     #[test]
@@ -305,22 +336,28 @@ mod test {
         buffer.write_u16::<LittleEndian>(3).unwrap();
         buffer.write_all(&[1, 2, 3]).unwrap();
 
-        let request = ExecuteCommandRequest::new("foo".to_string(),
-                                                 1,
-                                                 2,
-                                                 3,
-                                                 EventType::SubscriberEvent,
-                                                 vec![1, 2, 3]);
+        let request = ExecuteCommandRequest::new(
+            "foo".to_string(),
+            1,
+            2,
+            3,
+            EventType::SubscriberEvent,
+            vec![1, 2, 3],
+        );
 
         let mut bytes = vec![];
         request.to_bytes(&mut bytes).unwrap();
 
         assert_eq!(buffer, bytes);
-        assert_eq!(request,
-                   ExecuteCommandRequest::from_bytes(&mut &buffer[..]).unwrap());
+        assert_eq!(
+            request,
+            ExecuteCommandRequest::from_bytes(&mut &buffer[..]).unwrap()
+        );
 
-        assert_eq!(MessageHeader::new(19, 20, 0, 1),
-                   ExecuteCommandRequest::message_header());
+        assert_eq!(
+            MessageHeader::new(19, 20, 0, 1),
+            ExecuteCommandRequest::message_header()
+        );
     }
 
     #[test]
@@ -341,11 +378,15 @@ mod test {
         response.to_bytes(&mut bytes).unwrap();
 
         assert_eq!(buffer, bytes);
-        assert_eq!(response,
-                   ExecuteCommandResponse::from_bytes(&mut &buffer[..]).unwrap());
+        assert_eq!(
+            response,
+            ExecuteCommandResponse::from_bytes(&mut &buffer[..]).unwrap()
+        );
 
-        assert_eq!(MessageHeader::new(18, 21, 0, 1),
-                   ExecuteCommandResponse::message_header());
+        assert_eq!(
+            MessageHeader::new(18, 21, 0, 1),
+            ExecuteCommandResponse::message_header()
+        );
     }
 
 }

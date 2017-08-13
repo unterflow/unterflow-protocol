@@ -138,8 +138,10 @@ mod test {
 
         assert_eq!(buffer, bytes);
 
-        assert_eq!(header,
-                   DataFrameHeader::from_bytes(&mut &buffer[..]).unwrap());
+        assert_eq!(
+            header,
+            DataFrameHeader::from_bytes(&mut &buffer[..]).unwrap()
+        );
 
         assert_eq!(12, DataFrameHeader::block_length());
         assert_eq!(24, header.aligned_length());
@@ -161,12 +163,16 @@ mod test {
 
         assert_eq!(buffer, bytes);
 
-        assert_eq!(header,
-                   TransportHeader::from_bytes(&mut &buffer[..]).unwrap());
+        assert_eq!(
+            header,
+            TransportHeader::from_bytes(&mut &buffer[..]).unwrap()
+        );
 
         assert_eq!(2, TransportHeader::block_length());
-        assert_eq!(&TransportProtocol::FullDuplexSingleMessage,
-                   header.protocol())
+        assert_eq!(
+            &TransportProtocol::FullDuplexSingleMessage,
+            header.protocol()
+        )
     }
 
     #[test]
@@ -182,8 +188,10 @@ mod test {
 
         assert_eq!(buffer, bytes);
 
-        assert_eq!(header,
-                   RequestResponseHeader::from_bytes(&mut &buffer[..]).unwrap());
+        assert_eq!(
+            header,
+            RequestResponseHeader::from_bytes(&mut &buffer[..]).unwrap()
+        );
 
         assert_eq!(8, RequestResponseHeader::block_length());
         assert_eq!(256, header.request_id());

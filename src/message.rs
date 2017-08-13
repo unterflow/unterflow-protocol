@@ -79,23 +79,32 @@ impl TaskSubscription {
         }
     }
 
-    pub fn new(topic_name: String,
-               partition_id: u32,
-               task_type: String,
-               lock_owner: String,
-               lock_duration: u64,
-               subscriber_key: u64,
-               credits: u32)
-               -> Self {
+    pub fn new<S: Into<String>>(
+        topic_name: S,
+        partition_id: u32,
+        task_type: S,
+        lock_owner: S,
+        lock_duration: u64,
+        subscriber_key: u64,
+        credits: u32,
+    ) -> Self {
         TaskSubscription {
-            topic_name,
+            topic_name: topic_name.into(),
             partition_id,
             subscriber_key,
-            task_type,
+            task_type: task_type.into(),
             lock_duration,
-            lock_owner,
+            lock_owner: lock_owner.into(),
             credits,
         }
+    }
+
+    pub fn subscriber_key(&self) -> u64 {
+        self.subscriber_key
+    }
+
+    pub fn set_subscriber_key(&mut self, subscriber_key: u64) {
+        self.subscriber_key = subscriber_key;
     }
 }
 
@@ -191,7 +200,7 @@ impl Default for TaskEvent {
             task_type: String::new(),
             headers: TaskHeaders::default(),
             custom_headers: Default::default(),
-            payload: Default::default(),
+            payload: vec![0xc0].into(),
         }
     }
 }
@@ -206,12 +215,20 @@ impl TaskEvent {
         }
     }
 
+    pub fn set_state<S: Into<String>>(&mut self, state: S) {
+        self.state = state.into();
+    }
+
     pub fn set_lock_owner<S: Into<String>>(&mut self, lock_owner: S) {
         self.lock_owner = lock_owner.into();
     }
 
     pub fn set_lock_time(&mut self, lock_time: i64) {
         self.lock_time = lock_time;
+    }
+
+    pub fn payload(&self) -> &ByteBuf {
+        &self.payload
     }
 
     pub fn set_payload<B: Into<ByteBuf>>(&mut self, payload: B) {

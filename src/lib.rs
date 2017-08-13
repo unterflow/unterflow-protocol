@@ -42,8 +42,13 @@ impl RequestResponseMessage {
             let message = ExecuteCommandResponse::from_bytes(reader)?;
             Ok(RequestResponseMessage::ExecuteCommandResponse(message))
         } else {
-            Err(std::io::Error::new(std::io::ErrorKind::InvalidData,
-                                    format!("Unsupported request response message {:?}", message_header)))
+            Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!(
+                    "Unsupported request response message {:?}",
+                    message_header
+                ),
+            ))
         }
     }
 }
@@ -101,12 +106,12 @@ impl RequestResponse {
         let message = RequestResponseMessage::read(&message_header, reader)?;
 
         Ok(RequestResponse {
-               frame_header,
-               transport_header,
-               request_header,
-               message_header,
-               message,
-           })
+            frame_header,
+            transport_header,
+            request_header,
+            message_header,
+            message,
+        })
     }
 
     pub fn message(&self) -> &RequestResponseMessage {
@@ -146,8 +151,13 @@ impl SingleRequestMessage {
             let message = AppendRequest::from_bytes(reader)?;
             Ok(SingleRequestMessage::AppendRequest(message))
         } else {
-            Err(std::io::Error::new(std::io::ErrorKind::InvalidData,
-                                    format!("Unsupported single request message {:?}", message_header)))
+            Err(std::io::Error::new(
+                std::io::ErrorKind::InvalidData,
+                format!(
+                    "Unsupported single request message {:?}",
+                    message_header
+                ),
+            ))
         }
     }
 }
@@ -166,11 +176,11 @@ impl SingleRequest {
         let message = SingleRequestMessage::read(&message_header, reader)?;
 
         Ok(SingleRequest {
-               frame_header,
-               transport_header,
-               message_header,
-               message,
-           })
+            frame_header,
+            transport_header,
+            message_header,
+            message,
+        })
     }
 
     pub fn message(&self) -> &SingleRequestMessage {
@@ -190,10 +200,10 @@ impl ControlRequest {
         let message = ControlMessage::from_bytes(reader)?;
 
         Ok(ControlRequest {
-               frame_header,
-               transport_header,
-               message,
-           })
+            frame_header,
+            transport_header,
+            message,
+        })
     }
 
     pub fn message(&self) -> &ControlMessage {
@@ -212,7 +222,7 @@ pub enum TransportMessage {
 impl TransportMessage {
     pub fn request<M: Into<RequestResponseMessage> + ToMessageHeader + HasMessageLength>(request_id: u64, message: M) -> Self {
         let length = TransportHeader::block_length() as u32 + RequestResponseHeader::block_length() as u32 + MessageHeader::block_length() as u32 +
-                     message.message_length();
+            message.message_length();
 
         let request_response = RequestResponse {
             frame_header: DataFrameHeader::new(length, 0, 0, DataFrameType::Message, 0),
@@ -271,8 +281,10 @@ impl FromBytes for TransportMessage {
                 TransportMessage::read(frame_header, &mut buffer)
             }
             _ => {
-                Err(std::io::Error::new(std::io::ErrorKind::InvalidData,
-                                        format!("Expected message but received {:?}", frame_header)))
+                Err(std::io::Error::new(
+                    std::io::ErrorKind::InvalidData,
+                    format!("Expected message but received {:?}", frame_header),
+                ))
             }
         }
     }

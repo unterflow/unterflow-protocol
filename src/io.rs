@@ -6,7 +6,9 @@ use std::io::{self, Read, Write};
 use std::mem::size_of;
 
 pub trait FromBytes {
-    fn from_bytes(reader: &mut Read) -> Result<Self, io::Error> where Self: Sized;
+    fn from_bytes(reader: &mut Read) -> Result<Self, io::Error>
+    where
+        Self: Sized;
 }
 
 pub trait ToBytes {
@@ -28,7 +30,9 @@ pub trait HasData {
 }
 
 pub trait FromData {
-    fn from_data<H: HasData>(has_data: &H) -> Result<Self, io::Error> where Self: Sized;
+    fn from_data<H: HasData>(has_data: &H) -> Result<Self, io::Error>
+    where
+        Self: Sized;
 }
 
 pub trait ToData {
@@ -304,7 +308,8 @@ impl<T: ToBytes + HasBlockLength> ToBytes for Vec<T> {
 }
 
 impl<'d, T> FromData for T
-    where T: Deserialize<'d>
+where
+    T: Deserialize<'d>,
 {
     fn from_data<H: HasData>(has_data: &H) -> Result<Self, io::Error> {
         let reader: &[u8] = has_data.data();
@@ -315,7 +320,8 @@ impl<'d, T> FromData for T
 }
 
 impl<T> ToData for T
-    where T: Serialize
+where
+    T: Serialize,
 {
     fn to_data(&self) -> Result<Data, io::Error> {
         let mut buffer = Vec::new();
@@ -579,8 +585,21 @@ mod test {
             b: "abc".to_string(),
         };
 
-        assert_eq!(Data(vec![0x82, 0xa1, 0x61, 0x0c, 0xa1, 0x62, 0xa3, 0x61, 0x62, 0x63]),
-                   foo.to_data().unwrap());
+        assert_eq!(
+            Data(vec![
+                0x82,
+                0xa1,
+                0x61,
+                0x0c,
+                0xa1,
+                0x62,
+                0xa3,
+                0x61,
+                0x62,
+                0x63,
+            ]),
+            foo.to_data().unwrap()
+        );
     }
 
 }
