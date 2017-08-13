@@ -122,11 +122,9 @@ pub struct ExecuteCommandRequest {
 }
 
 impl ExecuteCommandRequest {
-    pub fn new<T>(topic_name: String, partition_id: u16, position: u64, key: u64, event_type: EventType, command: T) -> Self
-        where T: Into<Data>
-    {
+    pub fn new<T: Into<Data>, S: Into<String>>(topic_name: S, partition_id: u16, position: u64, key: u64, event_type: EventType, command: T) -> Self {
         ExecuteCommandRequest {
-            topic_name,
+            topic_name: topic_name.into(),
             partition_id,
             position,
             key,
