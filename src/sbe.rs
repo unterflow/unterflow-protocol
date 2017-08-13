@@ -99,8 +99,9 @@ pub enum EventType {
     NoopEvent,
 }
 
-#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message)]
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData)]
 #[message(template_id = "20", schema_id = "0", version = "1")]
+#[data = "command"]
 pub struct ExecuteCommandRequest {
     partition_id: u16,
     position: u64,
@@ -125,14 +126,9 @@ impl ExecuteCommandRequest {
     }
 }
 
-impl HasData for ExecuteCommandRequest {
-    fn data(&self) -> &Data {
-        &self.command
-    }
-}
-
-#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message)]
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData)]
 #[message(template_id = "21", schema_id = "0", version = "1")]
+#[data = "event"]
 pub struct ExecuteCommandResponse {
     partition_id: u16,
     position: u64,
@@ -155,10 +151,24 @@ impl ExecuteCommandResponse {
     }
 }
 
-impl HasData for ExecuteCommandResponse {
-    fn data(&self) -> &Data {
-        &self.event
-    }
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
+enum SubscriptionType {
+    TaskSubscription,
+    TopicSubscription,
+}
+
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData)]
+#[message(template_id = "30", schema_id = "0", version = "1")]
+#[data = "event"]
+pub struct SubscribedEvent {
+    partition_id: u16,
+    position: u64,
+    key: u64,
+    subscriber_key: u64,
+    subscription_type: SubscriptionType,
+    event_type: EventType,
+    topic_name: String,
+    event: Data,
 }
 
 #[cfg(test)]

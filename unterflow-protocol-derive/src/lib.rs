@@ -216,17 +216,19 @@ pub fn derive_message(input: TokenStream) -> TokenStream {
     expr.to_string().parse().expect("parse quote!")
 }
 
-#[proc_macro_derive(HasData)]
+#[proc_macro_derive(HasData, attributes(data))]
 pub fn derive_has_data(input: TokenStream) -> TokenStream {
     let ast = syn::parse_derive_input(&input.to_string()).expect("parse_derive_input");
     let name = &ast.ident;
+    let data = named_attr(&ast, "data").unwrap_or("data".to_string());
+    let data = Ident::from(data);
 
     let expr = match ast.body {
         Body::Struct(_) => {
             quote! {
                 impl HasData for #name {
                     fn data(&self) -> &Data {
-                        &self.data
+                        &self.#data
                     }
                 }
             }

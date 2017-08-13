@@ -206,6 +206,14 @@ impl TaskEvent {
         }
     }
 
+    pub fn set_lock_owner<S: Into<String>>(&mut self, lock_owner: S) {
+        self.lock_owner = lock_owner.into();
+    }
+
+    pub fn set_lock_time(&mut self, lock_time: i64) {
+        self.lock_time = lock_time;
+    }
+
     pub fn set_payload<B: Into<ByteBuf>>(&mut self, payload: B) {
         self.payload = payload.into();
     }

@@ -209,6 +209,35 @@ fn open_task_subscription_response() {
 }
 
 #[test]
+fn task_subscription_locked_task() {
+    dump!(reader, "task-subscription-locked-task.bin");
+
+    let dump_length = reader.len();
+
+    let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(DataFrameHeader::new(264, 0, 0, 0, 1), data_frame_header);
+    assert_eq!(dump_length, data_frame_header.aligned_length());
+
+    let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(TransportHeader::new(TransportProtocol::FullDuplexSingleMessage),
+               transport_header);
+
+    let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(SubscribedEvent::message_header(), message_header);
+
+    let response = SubscribedEvent::from_bytes(&mut reader).unwrap();
+    let task = TaskEvent::from_data(&response).unwrap();
+
+    let mut expected = TaskEvent::new("LOCKED", "foo", 3);
+    expected.set_lock_owner("test");
+    expected.set_lock_time(1_502_612_949_248);
+    expected.set_payload(vec![192]);
+    assert_eq!(expected, task);
+
+    assert_eq!(data_frame_header.padding(), reader.len());
+}
+
+#[test]
 fn close_task_subscription_request() {
     dump!(reader, "close-task-subscription-request.bin");
 
