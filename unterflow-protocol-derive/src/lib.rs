@@ -239,6 +239,48 @@ pub fn derive_has_data(input: TokenStream) -> TokenStream {
     expr.to_string().parse().expect("parse quote!")
 }
 
+#[proc_macro_derive(HasMessageLength, attributes(enum_type))]
+pub fn derive_has_message_length(input: TokenStream) -> TokenStream {
+    let ast = syn::parse_derive_input(&input.to_string()).expect("parse_derive_input");
+    let name = &ast.ident;
+
+    let message_length = match ast.body {
+        Body::Struct(VariantData::Struct(ref body)) => {
+            let mut fields: Vec<_> = body.iter()
+                .map(|field| {
+                    let unqualified_ident = &field.ident;
+                    quote! { self.#unqualified_ident.message_length() }
+                })
+                .collect();
+
+            // allow empty implementations, i.e. SingleMessageHeader
+            fields.push(quote! { 0 });
+
+            quote! {
+                #(#fields)+*
+            }
+        }
+        Body::Enum(_) => {
+            let ty = enum_type(&ast);
+
+            quote! {
+                ::std::mem::size_of::<#ty>() as u32
+            }
+        }
+        _ => panic!("#[derive(HasMessageLength)] can only be used with structs or enums"),
+    };
+
+    let expr = quote! {
+        impl HasMessageLength for #name {
+            fn message_length(&self) -> u32 {
+                #message_length
+            }
+        }
+    };
+
+    expr.to_string().parse().expect("parse quote!")
+}
+
 fn as_ty(ty: String) -> Ty {
     let ident = Ident::from(ty);
     Ty::Path(None, Path::from(ident))

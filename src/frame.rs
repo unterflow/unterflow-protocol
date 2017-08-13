@@ -1,21 +1,28 @@
 use io::{FromBytes, HasBlockLength, ToBytes};
 
 #[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
+#[enum_type = "u16"]
+pub enum DataFrameType {
+    Message,
+    Padding,
+}
+
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
 pub struct DataFrameHeader {
     length: u32,
     version: u8,
     flags: u8,
-    type_id: u16,
+    frame_type: DataFrameType,
     stream_id: u32,
 }
 
 impl DataFrameHeader {
-    pub fn new(length: u32, version: u8, flags: u8, type_id: u16, stream_id: u32) -> Self {
+    pub fn new(length: u32, version: u8, flags: u8, frame_type: DataFrameType, stream_id: u32) -> Self {
         DataFrameHeader {
             length,
             version,
             flags,
-            type_id,
+            frame_type,
             stream_id,
         }
     }
@@ -30,6 +37,10 @@ impl DataFrameHeader {
 
     pub fn padding(&self) -> usize {
         self.aligned_length() - self.length() - Self::block_length() as usize
+    }
+
+    pub fn frame_type(&self) -> &DataFrameType {
+        &self.frame_type
     }
 
     pub fn is_batch_begin(&self) -> bool {
@@ -117,10 +128,10 @@ mod test {
         buffer.write_u32::<LittleEndian>(10).unwrap();
         buffer.write_u8(11).unwrap();
         buffer.write_u8(224).unwrap();
-        buffer.write_u16::<LittleEndian>(12).unwrap();
+        buffer.write_u16::<LittleEndian>(1).unwrap();
         buffer.write_u32::<LittleEndian>(13).unwrap();
 
-        let header = DataFrameHeader::new(10, 11, 224, 12, 13);
+        let header = DataFrameHeader::new(10, 11, 224, DataFrameType::Padding, 13);
 
         let mut bytes = vec![];
         header.to_bytes(&mut bytes).unwrap();

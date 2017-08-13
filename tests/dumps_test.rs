@@ -19,7 +19,8 @@ fn topology_request() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(22, 0, 0, 0, 0), data_frame_header);
+    assert_eq!(DataFrameHeader::new(22, 0, 0, DataFrameType::Message, 0),
+               data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -46,7 +47,8 @@ fn topology_response() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(125, 0, 0, 0, 0), data_frame_header);
+    assert_eq!(DataFrameHeader::new(125, 0, 0, DataFrameType::Message, 0),
+               data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -80,7 +82,8 @@ fn create_task_request() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(158, 0, 0, 0, 1), data_frame_header);
+    assert_eq!(DataFrameHeader::new(158, 0, 0, DataFrameType::Message, 1),
+               data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -111,7 +114,8 @@ fn create_task_response() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(278, 0, 0, 0, 1), data_frame_header);
+    assert_eq!(DataFrameHeader::new(278, 0, 0, DataFrameType::Message, 1),
+               data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -142,7 +146,8 @@ fn open_task_subscription_request() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(129, 0, 0, 0, 1), data_frame_header);
+    assert_eq!(DataFrameHeader::new(129, 0, 0, DataFrameType::Message, 1),
+               data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -180,7 +185,8 @@ fn open_task_subscription_response() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(128, 0, 0, 0, 1), data_frame_header);
+    assert_eq!(DataFrameHeader::new(128, 0, 0, DataFrameType::Message, 1),
+               data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -215,7 +221,8 @@ fn task_subscription_locked_task() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(264, 0, 0, 0, 1), data_frame_header);
+    assert_eq!(DataFrameHeader::new(264, 0, 0, DataFrameType::Message, 1),
+               data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -244,7 +251,8 @@ fn close_task_subscription_request() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(97, 0, 0, 0, 1), data_frame_header);
+    assert_eq!(DataFrameHeader::new(97, 0, 0, DataFrameType::Message, 1),
+               data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -276,7 +284,8 @@ fn close_task_subscription_response() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(124, 0, 0, 0, 1), data_frame_header);
+    assert_eq!(DataFrameHeader::new(124, 0, 0, DataFrameType::Message, 1),
+               data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -311,7 +320,8 @@ fn open_topic_subscription_request() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(125, 0, 0, 0, 0), data_frame_header);
+    assert_eq!(DataFrameHeader::new(125, 0, 0, DataFrameType::Message, 0),
+               data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -339,7 +349,8 @@ fn open_topic_subscription_response() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(125, 0, 0, 0, 0), data_frame_header);
+    assert_eq!(DataFrameHeader::new(125, 0, 0, DataFrameType::Message, 0),
+               data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -368,7 +379,8 @@ fn close_topic_subscription_request() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(74, 0, 0, 0, 0), data_frame_header);
+    assert_eq!(DataFrameHeader::new(74, 0, 0, DataFrameType::Message, 0),
+               data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -400,7 +412,8 @@ fn close_topic_subscription_response() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(73, 0, 0, 0, 0), data_frame_header);
+    assert_eq!(DataFrameHeader::new(73, 0, 0, DataFrameType::Message, 0),
+               data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -429,7 +442,8 @@ fn keep_alive() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(6, 0, 0, 0, 0), data_frame_header);
+    assert_eq!(DataFrameHeader::new(6, 0, 0, DataFrameType::Message, 0),
+               data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -449,7 +463,8 @@ fn append_request() {
     let dump_length = reader.len();
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(DataFrameHeader::new(218, 0, 0, 0, 0), data_frame_header);
+    assert_eq!(DataFrameHeader::new(218, 0, 0, DataFrameType::Message, 0),
+               data_frame_header);
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
@@ -457,5 +472,26 @@ fn append_request() {
                transport_header);
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(MessageHeader::new(26, 10, 4, 1), message_header);
+    assert_eq!(AppendRequest::message_header(), message_header);
+
+    let response = AppendRequest::from_bytes(&mut reader).unwrap();
+    let data = vec![141, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 96, 0, 0, 0, 1, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255,
+                    255, 255, 255, 255, 255, 255, 96, 0, 0, 0, 1, 0, 0, 0, 0, 0, 43, 0, 35, 0, 200, 0, 0, 0, 1, 0, 0, 0, 0, 128, 255, 255, 255, 255,
+                    255, 255, 255, 255, 1, 0, 0, 0, 255, 255, 255, 255, 255, 255, 255, 255, 1, 0, 1, 255, 255, 255, 255, 255, 255, 255, 255, 129,
+                    167, 109, 101, 109, 98, 101, 114, 115, 146, 130, 164, 104, 111, 115, 116, 169, 108, 111, 99, 97, 108, 104, 111, 115, 116, 164,
+                    112, 111, 114, 116, 205, 31, 65, 130, 164, 104, 111, 115, 116, 169, 108, 111, 99, 97, 108, 104, 111, 115, 116, 164, 112, 111,
+                    114, 116, 205, 31, 66, 0, 0, 0, 0, 0, 0, 0];
+    assert_eq!(AppendRequest::new("default",
+                                  0,
+                                  1,
+                                  4_294_967_296,
+                                  1,
+                                  4_294_967_392,
+                                  "localhost",
+                                  8001,
+                                  data),
+               response);
+
+    assert_eq!(data_frame_header.padding(), reader.len());
+
 }

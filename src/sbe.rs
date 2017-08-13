@@ -1,4 +1,5 @@
-use io::{Data, FromBytes, HasBlockLength, HasData, Message, ToBytes};
+use io::{Data, FromBytes, HasBlockLength, HasData, HasMessageLength, Message, ToBytes, ToData};
+use std;
 
 #[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
 pub struct MessageHeader {
@@ -40,7 +41,7 @@ impl<T: Message + HasBlockLength> ToMessageHeader for T {
     }
 }
 
-#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, HasMessageLength)]
 pub enum ControlMessageType {
     AddTaskSubscription,
     RemoveTaskSubscription,
@@ -49,7 +50,16 @@ pub enum ControlMessageType {
     RequestTopology,
 }
 
-#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData)]
+impl ControlMessageType {
+    pub fn with<D: ToData>(self, data: D) -> Result<ControlMessageRequest, std::io::Error> {
+        Ok(ControlMessageRequest {
+               message_type: self,
+               data: data.to_data()?,
+           })
+    }
+}
+
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData, HasMessageLength)]
 #[message(template_id = "10", schema_id = "0", version = "1")]
 pub struct ControlMessageRequest {
     message_type: ControlMessageType,
@@ -71,7 +81,7 @@ impl ControlMessageRequest {
     }
 }
 
-#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData)]
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData, HasMessageLength)]
 #[message(template_id = "11", schema_id = "0", version = "1")]
 pub struct ControlMessageResponse {
     data: Data,
@@ -86,7 +96,7 @@ impl ControlMessageResponse {
 }
 
 
-#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, HasMessageLength)]
 pub enum EventType {
     TaskEvent,
     RaftEvent,
@@ -99,7 +109,7 @@ pub enum EventType {
     NoopEvent,
 }
 
-#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData)]
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData, HasMessageLength)]
 #[message(template_id = "20", schema_id = "0", version = "1")]
 #[data = "command"]
 pub struct ExecuteCommandRequest {
@@ -126,7 +136,7 @@ impl ExecuteCommandRequest {
     }
 }
 
-#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData)]
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData, HasMessageLength)]
 #[message(template_id = "21", schema_id = "0", version = "1")]
 #[data = "event"]
 pub struct ExecuteCommandResponse {
@@ -151,13 +161,13 @@ impl ExecuteCommandResponse {
     }
 }
 
-#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, HasMessageLength)]
 enum SubscriptionType {
     TaskSubscription,
     TopicSubscription,
 }
 
-#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData)]
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData, HasMessageLength)]
 #[message(template_id = "30", schema_id = "0", version = "1")]
 #[data = "event"]
 pub struct SubscribedEvent {
@@ -170,6 +180,47 @@ pub struct SubscribedEvent {
     topic_name: String,
     event: Data,
 }
+
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData, HasMessageLength)]
+#[message(template_id = "10", schema_id = "4", version = "1")]
+pub struct AppendRequest {
+    partition_id: u16,
+    term: u16,
+    previous_event_position: u64,
+    previous_event_term: i32,
+    commit_position: u64,
+    port: u16,
+    topic_name: String,
+    host: String,
+    data: Data,
+}
+
+impl AppendRequest {
+    pub fn new<S: Into<String>, D: Into<Data>>(topic_name: S,
+                                               partition_id: u16,
+                                               term: u16,
+                                               previous_event_position: u64,
+                                               previous_event_term: i32,
+                                               commit_position: u64,
+                                               host: S,
+                                               port: u16,
+                                               data: D)
+                                               -> Self {
+        AppendRequest {
+            partition_id,
+            term,
+            previous_event_position,
+            previous_event_term,
+            commit_position,
+            port,
+            topic_name: topic_name.into(),
+            host: host.into(),
+            data: data.into(),
+        }
+    }
+}
+
+
 
 #[cfg(test)]
 mod test {

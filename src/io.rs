@@ -35,6 +35,29 @@ pub trait ToData {
     fn to_data(&self) -> Result<Data, io::Error>;
 }
 
+pub trait HasMessageLength {
+    fn message_length(&self) -> u32;
+}
+
+macro_rules! impl_has_message_length {
+    ($t:ty) => (
+        impl HasMessageLength for $t {
+            fn message_length(&self) -> u32 {
+                ::std::mem::size_of::<$t>() as u32
+            }
+        }
+    )
+}
+
+impl_has_message_length!(u8);
+impl_has_message_length!(i8);
+impl_has_message_length!(u16);
+impl_has_message_length!(i16);
+impl_has_message_length!(u32);
+impl_has_message_length!(i32);
+impl_has_message_length!(u64);
+impl_has_message_length!(i64);
+
 impl FromBytes for u8 {
     fn from_bytes(reader: &mut Read) -> Result<Self, io::Error> {
         reader.read_u8()
@@ -225,6 +248,12 @@ impl HasData for Data {
     }
 }
 
+impl HasMessageLength for Data {
+    fn message_length(&self) -> u32 {
+        (size_of::<u16>() + self.0.len()) as u32
+    }
+}
+
 impl FromBytes for String {
     fn from_bytes(reader: &mut Read) -> Result<Self, io::Error> {
         let buffer: Data = FromBytes::from_bytes(reader)?;
@@ -238,6 +267,12 @@ impl ToBytes for String {
         let length = self.len() as u16;
         writer.write_u16::<LittleEndian>(length)?;
         writer.write_all(self.as_bytes())
+    }
+}
+
+impl HasMessageLength for String {
+    fn message_length(&self) -> u32 {
+        (size_of::<u16>() + self.as_bytes().len()) as u32
     }
 }
 
@@ -288,6 +323,13 @@ impl<T> ToData for T
             .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
         Ok(Data(buffer))
+    }
+}
+
+impl<T: HasMessageLength> HasMessageLength for Vec<T> {
+    fn message_length(&self) -> u32 {
+        let length: u32 = self.into_iter().map(HasMessageLength::message_length).sum();
+        (size_of::<u16>() + size_of::<u8>()) as u32 + length
     }
 }
 
