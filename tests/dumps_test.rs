@@ -458,7 +458,7 @@ fn open_topic_subscription_request() {
     let request = ExecuteCommandRequest::from_bytes(&mut reader).unwrap();
     let subscriber = TopicSubscriber::from_data(&request).unwrap();
     assert_eq!(
-        TopicSubscriber::new(0, "foo".to_string(), 32, false),
+        TopicSubscriber::new(0, "foo", "SUBSCRIBE", 32, false),
         subscriber
     );
 
@@ -493,7 +493,7 @@ fn open_topic_subscription_response() {
     let response = ExecuteCommandResponse::from_bytes(&mut reader).unwrap();
     let subscriber = TopicSubscriber::from_data(&response).unwrap();
     assert_eq!(
-        TopicSubscriber::new(0, "foo".to_string(), 32, false),
+        TopicSubscriber::new(0, "foo", "SUBSCRIBED", 32, false),
         subscriber
     );
 
@@ -574,6 +574,37 @@ fn close_topic_subscription_response() {
         CloseSubscription::new("default-topic".to_string(), 0, 123),
         subscription
     );
+
+    assert_eq!(data_frame_header.padding(), reader.len());
+}
+
+#[test]
+fn error_topic_not_found() {
+    dump!(reader, "error-topic-not-found.bin");
+
+    let dump_length = reader.len();
+
+    let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(
+        DataFrameHeader::new(356, 0, 0, DataFrameType::Message, 0),
+        data_frame_header
+    );
+    assert_eq!(dump_length, data_frame_header.aligned_length());
+
+    let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(
+        TransportHeader::new(TransportProtocol::RequestResponse),
+        transport_header
+    );
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(1), request_response_header);
+
+    let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(ErrorResponse::message_header(), message_header);
+
+    let response = ErrorResponse::from_bytes(&mut reader).unwrap();
+    assert_eq!(ErrorResponse::new(ErrorCode::TopicNotFound, vec![67, 97, 110, 110, 111, 116, 32, 101, 120, 101, 99, 117, 116, 101, 32, 99, 111, 109, 109, 97, 110, 100, 46, 32, 84, 111, 112, 105, 99, 32, 119, 105, 116, 104, 32, 110, 97, 109, 101, 32, 39, 100, 101, 102, 97, 117, 108, 116, 45, 116, 111, 105, 99, 39, 32, 97, 110, 100, 32, 112, 97, 114, 116, 105, 116, 105, 111, 110, 32, 105, 100, 32, 39, 48, 39, 32, 110, 111, 116,32, 102, 111, 117, 110, 100], vec![19, 0, 20, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 100, 101, 102, 97, 117, 108, 116, 45, 116, 111, 105, 99, 205, 0, 136, 165, 115, 116, 97, 116, 101, 166, 67, 82, 69, 65, 84, 69, 168, 108, 111, 99, 107, 84, 105, 109, 101, 211, 128, 0, 0, 0, 0, 0, 0, 0, 169, 108, 111, 99, 107, 79, 119, 110, 101, 114, 160, 167, 114, 101, 116, 114, 105, 101, 115, 3, 164, 116, 121, 112, 101, 163, 102, 111, 111, 167, 104, 101, 97, 100, 101, 114, 115, 134, 179, 119, 111, 114, 107, 102, 108, 111, 119, 73, 110, 115, 116, 97, 110, 99, 101, 75, 101, 121, 255, 173, 98, 112, 109, 110, 80, 114, 111, 99, 101, 115, 115, 73, 100, 160, 185, 119, 111, 114, 107, 102, 108, 111, 119, 68, 101, 102, 105, 110, 105, 116, 105, 111, 110, 86, 101, 114, 115, 105, 111, 110, 255, 171, 119, 111, 114, 107, 102, 108, 111, 119, 75, 101, 121, 255, 170, 97, 99, 116, 105, 118, 105, 116, 121, 73, 100, 160, 179, 97, 99, 116, 105, 118, 105, 116, 121, 73, 110, 115, 116, 97, 110, 99, 101, 75, 101, 121, 255, 173, 99, 117, 115, 116, 111, 109, 72, 101, 97, 100, 101, 114, 115, 128, 167, 112, 97, 121, 108, 111, 97, 100, 196, 1, 192]), response);
 
     assert_eq!(data_frame_header.padding(), reader.len());
 }

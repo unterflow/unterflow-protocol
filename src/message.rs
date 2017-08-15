@@ -115,15 +115,17 @@ impl TaskSubscription {
 pub struct TopicSubscriber {
     start_position: u64,
     name: String,
+    state: String,
     prefetch_capacity: u32,
     force_start: bool,
 }
 
 impl TopicSubscriber {
-    pub fn new(start_position: u64, name: String, prefetch_capacity: u32, force_start: bool) -> Self {
+    pub fn new<S: Into<String>>(start_position: u64, name: S, state: S, prefetch_capacity: u32, force_start: bool) -> Self {
         TopicSubscriber {
             start_position,
-            name,
+            name: name.into(),
+            state: state.into(),
             prefetch_capacity,
             force_start,
         }

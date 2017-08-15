@@ -43,6 +43,36 @@ impl<T: Message + HasBlockLength> ToMessageHeader for T {
 }
 
 #[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, HasMessageLength)]
+pub enum ErrorCode {
+    MessageNotSupported,
+    TopicNotFound,
+    RequestWriteFailure,
+    InvalidClientVersion,
+    RequestTimeout,
+    RequestProcessingFailure,
+    InvalidMessage,
+}
+
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, Message, HasData, HasMessageLength)]
+#[message(template_id = "0", schema_id = "0", version = "1")]
+#[data = "error_data"]
+pub struct ErrorResponse {
+    error_code: ErrorCode,
+    error_data: Data,
+    failed_request: Data,
+}
+
+impl ErrorResponse {
+    pub fn new<D: Into<Data>>(error_code: ErrorCode, error_data: D, failed_request: D) -> Self {
+        ErrorResponse {
+            error_code,
+            error_data: error_data.into(),
+            failed_request: failed_request.into(),
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, HasMessageLength)]
 pub enum ControlMessageType {
     AddTaskSubscription,
     RemoveTaskSubscription,
