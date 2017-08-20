@@ -2,6 +2,7 @@ use byteorder::{LittleEndian, ReadBytesExt, WriteBytesExt};
 use rmp_serde::{Deserializer, Serializer};
 use rmp_serde::encode::StructMapWriter;
 use serde::{Deserialize, Serialize};
+use std::fmt;
 use std::io::{self, Read, Write};
 use std::mem::size_of;
 
@@ -206,8 +207,14 @@ impl HasBlockLength for i64 {
     }
 }
 
-#[derive(Debug, PartialEq, Default, Serialize, Deserialize)]
+#[derive(PartialEq, Default, Serialize, Deserialize)]
 pub struct Data(Vec<u8>);
+
+impl fmt::Debug for Data {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "Data( len: {} )", self.0.len())
+    }
+}
 
 impl ::std::ops::Deref for Data {
     type Target = Vec<u8>;

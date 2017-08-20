@@ -92,11 +92,11 @@ impl ToBytes for RequestResponseMessage {
 
 #[derive(Debug)]
 pub struct RequestResponse {
-    frame_header: DataFrameHeader,
-    transport_header: TransportHeader,
-    request_header: RequestResponseHeader,
-    message_header: MessageHeader,
-    message: RequestResponseMessage,
+    pub frame_header: DataFrameHeader,
+    pub transport_header: TransportHeader,
+    pub request_header: RequestResponseHeader,
+    pub message_header: MessageHeader,
+    pub message: RequestResponseMessage,
 }
 
 impl RequestResponse {
@@ -164,10 +164,10 @@ impl SingleRequestMessage {
 
 #[derive(Debug)]
 pub struct SingleRequest {
-    frame_header: DataFrameHeader,
-    transport_header: TransportHeader,
-    message_header: MessageHeader,
-    message: SingleRequestMessage,
+    pub frame_header: DataFrameHeader,
+    pub transport_header: TransportHeader,
+    pub message_header: MessageHeader,
+    pub message: SingleRequestMessage,
 }
 
 impl SingleRequest {
@@ -190,9 +190,9 @@ impl SingleRequest {
 
 #[derive(Debug)]
 pub struct ControlRequest {
-    frame_header: DataFrameHeader,
-    transport_header: TransportHeader,
-    message: ControlMessage,
+    pub frame_header: DataFrameHeader,
+    pub transport_header: TransportHeader,
+    pub message: ControlMessage,
 }
 
 impl ControlRequest {
