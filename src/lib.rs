@@ -225,9 +225,15 @@ impl TransportMessage {
             message.message_length();
 
         let request_response = RequestResponse {
-            frame_header: DataFrameHeader::new(length, 0, 0, DataFrameType::Message, 0),
-            transport_header: TransportHeader::new(TransportProtocol::RequestResponse),
-            request_header: RequestResponseHeader::new(request_id),
+            frame_header: DataFrameHeader {
+                length,
+                version: 0,
+                flags: 0,
+                frame_type: DataFrameType::Message,
+                stream_id: 0,
+            },
+            transport_header: TransportHeader { protocol: TransportProtocol::RequestResponse },
+            request_header: RequestResponseHeader { request_id: request_id },
             message_header: M::message_header(),
             message: message.into(),
         };
@@ -237,7 +243,7 @@ impl TransportMessage {
 
     pub fn read<R: Read>(frame_header: DataFrameHeader, reader: &mut R) -> Result<Self, std::io::Error> {
         let transport_header = TransportHeader::from_bytes(reader)?;
-        match *transport_header.protocol() {
+        match transport_header.protocol {
             TransportProtocol::RequestResponse => {
                 let message = RequestResponse::read(frame_header, transport_header, reader)?;
                 Ok(TransportMessage::RequestResponse(message))
@@ -268,7 +274,7 @@ impl ToBytes for TransportMessage {
 impl FromBytes for TransportMessage {
     fn from_bytes(reader: &mut Read) -> Result<Self, std::io::Error> {
         let frame_header = DataFrameHeader::from_bytes(reader)?;
-        match *frame_header.frame_type() {
+        match frame_header.frame_type {
             DataFrameType::Message => {
                 let length = frame_header.aligned_length() - DataFrameHeader::block_length() as usize;
                 let mut buffer = vec![0; length];

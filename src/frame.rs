@@ -7,26 +7,22 @@ pub enum DataFrameType {
     Padding,
 }
 
-#[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
+impl Default for DataFrameType {
+    fn default() -> Self {
+        DataFrameType::Message
+    }
+}
+
+#[derive(Debug, Default, PartialEq, FromBytes, ToBytes, HasBlockLength)]
 pub struct DataFrameHeader {
-    length: u32,
-    version: u8,
-    flags: u8,
-    frame_type: DataFrameType,
-    stream_id: u32,
+    pub length: u32,
+    pub version: u8,
+    pub flags: u8,
+    pub frame_type: DataFrameType,
+    pub stream_id: u32,
 }
 
 impl DataFrameHeader {
-    pub fn new(length: u32, version: u8, flags: u8, frame_type: DataFrameType, stream_id: u32) -> Self {
-        DataFrameHeader {
-            length,
-            version,
-            flags,
-            frame_type,
-            stream_id,
-        }
-    }
-
     pub fn length(&self) -> usize {
         self.length as usize
     }
@@ -37,10 +33,6 @@ impl DataFrameHeader {
 
     pub fn padding(&self) -> usize {
         self.aligned_length() - self.length() - Self::block_length() as usize
-    }
-
-    pub fn frame_type(&self) -> &DataFrameType {
-        &self.frame_type
     }
 
     pub fn is_batch_begin(&self) -> bool {
@@ -66,32 +58,12 @@ pub enum TransportProtocol {
 
 #[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
 pub struct TransportHeader {
-    protocol: TransportProtocol,
-}
-
-impl TransportHeader {
-    pub fn new(protocol: TransportProtocol) -> Self {
-        TransportHeader { protocol }
-    }
-
-    pub fn protocol(&self) -> &TransportProtocol {
-        &self.protocol
-    }
+    pub protocol: TransportProtocol,
 }
 
 #[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
 pub struct RequestResponseHeader {
-    request_id: u64,
-}
-
-impl RequestResponseHeader {
-    pub fn new(request_id: u64) -> Self {
-        RequestResponseHeader { request_id }
-    }
-
-    pub fn request_id(&self) -> u64 {
-        self.request_id
-    }
+    pub request_id: u64,
 }
 
 #[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
@@ -107,7 +79,6 @@ pub fn align(value: usize) -> usize {
 
 #[cfg(test)]
 mod test {
-
     use super::*;
     use byteorder::{LittleEndian, WriteBytesExt};
 
@@ -131,7 +102,13 @@ mod test {
         buffer.write_u16::<LittleEndian>(1).unwrap();
         buffer.write_u32::<LittleEndian>(13).unwrap();
 
-        let header = DataFrameHeader::new(10, 11, 224, DataFrameType::Padding, 13);
+        let header = DataFrameHeader {
+            length: 10,
+            version: 11,
+            flags: 224,
+            frame_type: DataFrameType::Padding,
+            stream_id: 13,
+        };
 
         let mut bytes = vec![];
         header.to_bytes(&mut bytes).unwrap();
@@ -156,7 +133,7 @@ mod test {
 
         buffer.write_u16::<LittleEndian>(1).unwrap();
 
-        let header = TransportHeader::new(TransportProtocol::FullDuplexSingleMessage);
+        let header = TransportHeader { protocol: TransportProtocol::FullDuplexSingleMessage };
 
         let mut bytes = vec![];
         header.to_bytes(&mut bytes).unwrap();
@@ -169,10 +146,7 @@ mod test {
         );
 
         assert_eq!(2, TransportHeader::block_length());
-        assert_eq!(
-            &TransportProtocol::FullDuplexSingleMessage,
-            header.protocol()
-        )
+        assert_eq!(TransportProtocol::FullDuplexSingleMessage, header.protocol)
     }
 
     #[test]
@@ -181,7 +155,7 @@ mod test {
 
         buffer.write_u64::<LittleEndian>(256).unwrap();
 
-        let header = RequestResponseHeader::new(256);
+        let header = RequestResponseHeader { request_id: 256 };
 
         let mut bytes = vec![];
         header.to_bytes(&mut bytes).unwrap();
@@ -194,7 +168,6 @@ mod test {
         );
 
         assert_eq!(8, RequestResponseHeader::block_length());
-        assert_eq!(256, header.request_id());
+        assert_eq!(256, header.request_id);
     }
-
 }

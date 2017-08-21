@@ -23,15 +23,15 @@ fn main() {
 
     let mut credits = 32;
 
-    let mut subscription = TaskSubscription::new(
-        "default-topic",
-        0,
-        &task_type,
-        &lock_owner,
-        1_000,
-        0,
+    let mut subscription = TaskSubscription {
+        topic_name: "default-topic".into(),
+        partition_id: 0,
+        task_type: task_type,
+        lock_owner: lock_owner,
+        lock_duration: 1_000,
+        subscriber_key: 0,
         credits,
-    );
+    };
 
     let message = ControlMessageType::AddTaskSubscription
         .with(&subscription)
@@ -86,12 +86,10 @@ fn main() {
                 } else if let RequestResponseMessage::ControlMessageResponse(ref message) = *message {
                     let response = TaskSubscription::from_data(message).expect("Failed to read task subcription");
                     println!("Subscription {:?}", response);
-                    subscription.set_subscriber_key(response.subscriber_key());
+                    subscription.subscriber_key = response.subscriber_key;
                 }
             }
             _ => eprintln!("Unsupported message {:?}", request),
         }
-
     }
-
 }

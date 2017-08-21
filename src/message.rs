@@ -10,66 +10,39 @@ pub struct TopologyRequest {}
 #[serde(default)]
 #[serde(rename_all = "camelCase")]
 pub struct TopologyResponse {
-    topic_leaders: Vec<TopicLeader>,
-    brokers: Vec<SocketAddress>,
-}
-
-impl TopologyResponse {
-    pub fn topic_leaders(&self) -> &Vec<TopicLeader> {
-        &self.topic_leaders
-    }
-
-    pub fn brokers(&self) -> &Vec<SocketAddress> {
-        &self.brokers
-    }
+    pub topic_leaders: Vec<TopicLeader>,
+    pub brokers: Vec<SocketAddress>,
 }
 
 #[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
 #[serde(default)]
 #[serde(rename_all = "camelCase")]
 pub struct TopicLeader {
-    host: String,
-    port: u16,
-    topic_name: String,
-    partition_id: u16,
-}
-
-impl TopicLeader {
-    pub fn new(host: String, port: u16, topic_name: String, partition_id: u16) -> Self {
-        TopicLeader {
-            host,
-            port,
-            topic_name,
-            partition_id: partition_id,
-        }
-    }
+    pub host: String,
+    pub port: u16,
+    pub topic_name: String,
+    pub partition_id: u16,
 }
 
 #[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
 #[serde(default)]
 #[serde(rename_all = "camelCase")]
 pub struct SocketAddress {
-    host: String,
-    port: u16,
-}
-
-impl SocketAddress {
-    pub fn new(host: String, port: u16) -> Self {
-        SocketAddress { host, port }
-    }
+    pub host: String,
+    pub port: u16,
 }
 
 #[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
 #[serde(default)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskSubscription {
-    topic_name: String,
-    partition_id: u32,
-    subscriber_key: u64,
-    task_type: String,
-    lock_duration: u64,
-    lock_owner: String,
-    credits: u32,
+    pub topic_name: String,
+    pub partition_id: u32,
+    pub subscriber_key: u64,
+    pub task_type: String,
+    pub lock_duration: u64,
+    pub lock_owner: String,
+    pub credits: u32,
 }
 
 impl TaskSubscription {
@@ -80,89 +53,41 @@ impl TaskSubscription {
             ..Default::default()
         }
     }
-
-    pub fn new<S: Into<String>>(
-        topic_name: S,
-        partition_id: u32,
-        task_type: S,
-        lock_owner: S,
-        lock_duration: u64,
-        subscriber_key: u64,
-        credits: u32,
-    ) -> Self {
-        TaskSubscription {
-            topic_name: topic_name.into(),
-            partition_id,
-            subscriber_key,
-            task_type: task_type.into(),
-            lock_duration,
-            lock_owner: lock_owner.into(),
-            credits,
-        }
-    }
-
-    pub fn subscriber_key(&self) -> u64 {
-        self.subscriber_key
-    }
-
-    pub fn set_subscriber_key(&mut self, subscriber_key: u64) {
-        self.subscriber_key = subscriber_key;
-    }
 }
 
+pub const SUBSCRIBE_STATE: &'static str = "SUBSCRIBE";
+pub const SUBSCRIBED_STATE: &'static str = "SUBSCRIBED";
 
 #[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
 #[serde(default)]
 #[serde(rename_all = "camelCase")]
 pub struct TopicSubscriber {
-    start_position: u64,
-    name: String,
-    state: String,
-    prefetch_capacity: u32,
-    force_start: bool,
-}
-
-impl TopicSubscriber {
-    pub fn new<S: Into<String>>(start_position: u64, name: S, state: S, prefetch_capacity: u32, force_start: bool) -> Self {
-        TopicSubscriber {
-            start_position,
-            name: name.into(),
-            state: state.into(),
-            prefetch_capacity,
-            force_start,
-        }
-    }
+    pub start_position: u64,
+    pub name: String,
+    pub state: String,
+    pub prefetch_capacity: u32,
+    pub force_start: bool,
 }
 
 #[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
 #[serde(default)]
 #[serde(rename_all = "camelCase")]
 pub struct CloseSubscription {
-    topic_name: String,
-    partition_id: u32,
-    subscriber_key: u64,
-}
-
-impl CloseSubscription {
-    pub fn new(topic_name: String, partition_id: u32, subscriber_key: u64) -> Self {
-        CloseSubscription {
-            topic_name,
-            partition_id,
-            subscriber_key,
-        }
-    }
+    pub topic_name: String,
+    pub partition_id: u32,
+    pub subscriber_key: u64,
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 #[serde(default)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskHeaders {
-    workflow_instance_key: i64,
-    bpmn_process_id: String,
-    workflow_definition_version: i64,
-    workflow_key: i64,
-    activity_id: String,
-    activity_instance_key: i64,
+    pub workflow_instance_key: i64,
+    pub bpmn_process_id: String,
+    pub workflow_definition_version: i64,
+    pub workflow_key: i64,
+    pub activity_id: String,
+    pub activity_instance_key: i64,
 }
 
 impl Default for TaskHeaders {
@@ -177,6 +102,27 @@ impl Default for TaskHeaders {
         }
     }
 }
+
+pub const CREATE_STATE: &'static str = "CREATE";
+pub const CREATED_STATE: &'static str = "CREATED";
+pub const LOCK_STATE: &'static str = "LOCK";
+pub const LOCKED_STATE: &'static str = "LOCKED";
+pub const LOCK_REJECTED_STATE: &'static str = "LOCK_REJECTED";
+pub const COMPLETE_STATE: &'static str = "COMPLETE";
+pub const COMPLETED_STATE: &'static str = "COMPLETED";
+pub const COMPLETE_REJECTED_STATE: &'static str = "COMPLETE_REJECTED";
+pub const EXPIRE_LOCK_STATE: &'static str = "EXPIRE_LOCK";
+pub const LOCK_EXPIRED_STATE: &'static str = "LOCK_EXPIRED";
+pub const LOCK_EXPIRATION_REJECTED_STATE: &'static str = "LOCK_EXPIRATION_REJECTED";
+pub const FAIL_STATE: &'static str = "FAIL";
+pub const FAILED_STATE: &'static str = "FAILED";
+pub const FAIL_REJECTED_STATE: &'static str = "FAIL_REJECTED";
+pub const UPDATE_RETRIES_STATE: &'static str = "UPDATE_RETRIES";
+pub const RETRIES_UPDATED_STATE: &'static str = "RETRIES_UPDATED";
+pub const UPDATE_RETRIES_REJECTED_STATE: &'static str = "UPDATE_RETRIES_REJECTED";
+pub const CANCEL_STATE: &'static str = "CANCEL";
+pub const CANCELED_STATE: &'static str = "CANCELED";
+pub const CANCEL_REJECTED_STATE: &'static str = "CANCEL_REJECTED";
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 #[serde(default)]
@@ -210,35 +156,6 @@ impl Default for TaskEvent {
 }
 
 impl TaskEvent {
-    pub fn new<S: Into<String>>(state: S, task_type: S, retries: i32) -> Self {
-        TaskEvent {
-            state: state.into(),
-            task_type: task_type.into(),
-            retries,
-            ..Default::default()
-        }
-    }
-
-    pub fn set_state<S: Into<String>>(&mut self, state: S) {
-        self.state = state.into();
-    }
-
-    pub fn set_lock_owner<S: Into<String>>(&mut self, lock_owner: S) {
-        self.lock_owner = lock_owner.into();
-    }
-
-    pub fn set_lock_time(&mut self, lock_time: i64) {
-        self.lock_time = lock_time;
-    }
-
-    pub fn payload(&self) -> &ByteBuf {
-        &self.payload
-    }
-
-    pub fn set_payload<B: Into<ByteBuf>>(&mut self, payload: B) {
-        self.payload = payload.into();
-    }
-
     pub fn add_custom_header<S: Into<String>>(&mut self, key: S, value: S) {
         self.custom_headers.insert(key.into(), value.into());
     }
@@ -265,25 +182,25 @@ pub struct DeployedWorkflow {
     pub version: i32,
 }
 
+pub const CREATE_WORKFLOW_INSTANCE_STATE: &'static str = "CREATE_WORKFLOW_INSTANCE";
+pub const WORKFLOW_INSTANCE_CREATED_STATE: &'static str = "WORKFLOW_INSTANCE_CREATED";
+pub const WORKFLOW_INSTANCE_REJECTED_STATE: &'static str = "WORKFLOW_INSTANCE_REJECTED";
+pub const START_EVENT_OCCURRED_STATE: &'static str = "START_EVENT_OCCURRED";
+pub const END_EVENT_OCCURRED_STATE: &'static str = "END_EVENT_OCCURRED";
+pub const SEQUENCE_FLOW_TAKEN_STATE: &'static str = "SEQUENCE_FLOW_TAKEN";
+pub const ACTIVITY_READY_STATE: &'static str = "ACTIVITY_READY";
+pub const ACTIVITY_ACTIVATED_STATE: &'static str = "ACTIVITY_ACTIVATED";
+pub const ACTIVITY_COMPLETING_STATE: &'static str = "ACTIVITY_COMPLETING";
+pub const ACTIVITY_COMPLETED_STATE: &'static str = "ACTIVITY_COMPLETED";
+pub const ACTIVITY_TERMINATED_STATE: &'static str = "ACTIVITY_TERMINATED";
+pub const WORKFLOW_INSTANCE_COMPLETED_STATE: &'static str = "WORKFLOW_INSTANCE_COMPLETED";
+pub const CANCEL_WORKFLOW_INSTANCE_STATE: &'static str = "CANCEL_WORKFLOW_INSTANCE";
+pub const WORKFLOW_INSTANCE_CANCELED_STATE: &'static str = "WORKFLOW_INSTANCE_CANCELED";
+pub const CANCEL_WORKFLOW_INSTANCE_REJECTED_STATE: &'static str = "CANCEL_WORKFLOW_INSTANCE_REJECTED";
+pub const UPDATE_PAYLOAD_STATE: &'static str = "UPDATE_PAYLOAD";
+pub const PAYLOAD_UPDATED_STATE: &'static str = "PAYLOAD_UPDATED";
+pub const UPDATE_PAYLOAD_REJECTED_STATE: &'static str = "UPDATE_PAYLOAD_REJECTED";
 
-pub const CREATE_WORKFLOW_INSTANCE: &'static str = "CREATE_WORKFLOW_INSTANCE";
-pub const WORKFLOW_INSTANCE_CREATED: &'static str = "WORKFLOW_INSTANCE_CREATED";
-pub const WORKFLOW_INSTANCE_REJECTED: &'static str = "WORKFLOW_INSTANCE_REJECTED";
-pub const START_EVENT_OCCURRED: &'static str = "START_EVENT_OCCURRED";
-pub const END_EVENT_OCCURRED: &'static str = "END_EVENT_OCCURRED";
-pub const SEQUENCE_FLOW_TAKEN: &'static str = "SEQUENCE_FLOW_TAKEN";
-pub const ACTIVITY_READY: &'static str = "ACTIVITY_READY";
-pub const ACTIVITY_ACTIVATED: &'static str = "ACTIVITY_ACTIVATED";
-pub const ACTIVITY_COMPLETING: &'static str = "ACTIVITY_COMPLETING";
-pub const ACTIVITY_COMPLETED: &'static str = "ACTIVITY_COMPLETED";
-pub const ACTIVITY_TERMINATED: &'static str = "ACTIVITY_TERMINATED";
-pub const WORKFLOW_INSTANCE_COMPLETED: &'static str = "WORKFLOW_INSTANCE_COMPLETED";
-pub const CANCEL_WORKFLOW_INSTANCE: &'static str = "CANCEL_WORKFLOW_INSTANCE";
-pub const WORKFLOW_INSTANCE_CANCELED: &'static str = "WORKFLOW_INSTANCE_CANCELED";
-pub const CANCEL_WORKFLOW_INSTANCE_REJECTED: &'static str = "CANCEL_WORKFLOW_INSTANCE_REJECTED";
-pub const UPDATE_PAYLOAD: &'static str = "UPDATE_PAYLOAD";
-pub const PAYLOAD_UPDATED: &'static str = "PAYLOAD_UPDATED";
-pub const UPDATE_PAYLOAD_REJECTED: &'static str = "UPDATE_PAYLOAD_REJECTED";
 
 #[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
 #[serde(default)]

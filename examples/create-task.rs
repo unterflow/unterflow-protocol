@@ -4,7 +4,7 @@ use std::env;
 use std::net::TcpStream;
 use unterflow_protocol::{RequestResponseMessage, TransportMessage};
 use unterflow_protocol::io::{FromBytes, FromData, ToBytes, ToData};
-use unterflow_protocol::message::TaskEvent;
+use unterflow_protocol::message::{CREATE_STATE, TaskEvent};
 use unterflow_protocol::sbe::{EventType, ExecuteCommandRequest};
 
 fn main() {
@@ -15,9 +15,21 @@ fn main() {
     let mut stream = TcpStream::connect(&broker_address).expect(&format!("Failed to connect to broker {}", broker_address));
     println!("Connected to broker {}", broker_address);
 
-    let event = TaskEvent::new("CREATE", "foo", 3);
+    let event = TaskEvent {
+        state: CREATE_STATE.into(),
+        lock_owner: "foo".into(),
+        retries: 3,
+        ..Default::default()
+    };
     let command = event.to_data().expect("Failed to convert event");
-    let message = ExecuteCommandRequest::new("default-topic", 0, 0, 0, EventType::TaskEvent, command);
+    let message = ExecuteCommandRequest {
+        topic_name: "default_topic".into(),
+        partition_id: 0,
+        position: 0,
+        key: 0,
+        event_type: EventType::TaskEvent,
+        command,
+    };
 
     let request = TransportMessage::request(1, message);
     request.to_bytes(&mut stream).expect(

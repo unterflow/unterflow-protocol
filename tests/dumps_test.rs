@@ -27,25 +27,31 @@ fn topology_request_manual() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(22, 0, 0, DataFrameType::Message, 0),
+        DataFrameHeader {
+            length: 22,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(256), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 256 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ControlMessageRequest::message_header(), message_header);
 
     let request = ControlMessageRequest::from_bytes(&mut reader).unwrap();
-    assert_eq!(&ControlMessageType::RequestTopology, request.message_type());
+    assert_eq!(ControlMessageType::RequestTopology, request.message_type);
     assert!(TopologyRequest::from_data(&request).is_ok());
 
     assert_eq!(data_frame_header.padding(), reader.len());
@@ -95,19 +101,25 @@ fn topology_response_manual() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(125, 0, 0, DataFrameType::Message, 0),
+        DataFrameHeader {
+            length: 125,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(256), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 256 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ControlMessageResponse::message_header(), message_header);
@@ -116,19 +128,24 @@ fn topology_response_manual() {
     let topology = TopologyResponse::from_data(&response).unwrap();
 
     assert_eq!(
-        &vec![
-            TopicLeader::new(
-                "0.0.0.0".to_string(),
-                51_015,
-                "default-topic".to_string(),
-                0
-            ),
+        vec![
+            TopicLeader {
+                host: "0.0.0.0".into(),
+                port: 51_015,
+                topic_name: "default-topic".into(),
+                partition_id: 0,
+            },
         ],
-        topology.topic_leaders()
+        topology.topic_leaders
     );
     assert_eq!(
-        &vec![SocketAddress::new("0.0.0.0".to_string(), 51_015)],
-        topology.brokers()
+        vec![
+            SocketAddress {
+                host: "0.0.0.0".into(),
+                port: 51_015,
+            },
+        ],
+        topology.brokers
     );
 
     assert_eq!(data_frame_header.padding(), reader.len());
@@ -146,19 +163,24 @@ fn topology_response_read() {
             let topology = TopologyResponse::from_data(message).unwrap();
 
             assert_eq!(
-                &vec![
-                    TopicLeader::new(
-                        "0.0.0.0".to_string(),
-                        51_015,
-                        "default-topic".to_string(),
-                        0
-                    ),
+                vec![
+                    TopicLeader {
+                        host: "0.0.0.0".into(),
+                        port: 51_015,
+                        topic_name: "default-topic".into(),
+                        partition_id: 0,
+                    },
                 ],
-                topology.topic_leaders()
+                topology.topic_leaders
             );
             assert_eq!(
-                &vec![SocketAddress::new("0.0.0.0".to_string(), 51_015)],
-                topology.brokers()
+                vec![
+                    SocketAddress {
+                        host: "0.0.0.0".into(),
+                        port: 51_015,
+                    },
+                ],
+                topology.brokers
             );
 
             assert_eq!(0, reader.len());
@@ -178,29 +200,42 @@ fn create_task_request() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(158, 0, 0, DataFrameType::Message, 1),
+        DataFrameHeader {
+            length: 158,
+            stream_id: 1,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(257), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 257 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ExecuteCommandRequest::message_header(), message_header);
 
     let request = ExecuteCommandRequest::from_bytes(&mut reader).unwrap();
     let task = TaskEvent::from_data(&request).unwrap();
-    let mut expected = TaskEvent::new("CREATE", "foo", 3);
+    let mut expected = TaskEvent {
+        state: CREATE_STATE.into(),
+        task_type: "foo".into(),
+        retries: 3,
+        payload: vec![129, 167, 112, 97, 121, 108, 111, 97, 100, 123].into(),
+        ..Default::default()
+    };
+
     expected.add_custom_header("k1", "a");
     expected.add_custom_header("k2", "b");
-    expected.set_payload(vec![129, 167, 112, 97, 121, 108, 111, 97, 100, 123]);
     assert_eq!(expected, task);
 
     assert_eq!(data_frame_header.padding(), reader.len());
@@ -214,29 +249,41 @@ fn create_task_response() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(278, 0, 0, DataFrameType::Message, 1),
+        DataFrameHeader {
+            length: 278,
+            stream_id: 1,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(257), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 257 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ExecuteCommandResponse::message_header(), message_header);
 
     let response = ExecuteCommandResponse::from_bytes(&mut reader).unwrap();
     let task = TaskEvent::from_data(&response).unwrap();
-    let mut expected = TaskEvent::new("CREATED", "foo", 3);
+    let mut expected = TaskEvent {
+        state: CREATED_STATE.into(),
+        task_type: "foo".into(),
+        retries: 3,
+        payload: vec![129, 167, 112, 97, 121, 108, 111, 97, 100, 123].into(),
+        ..Default::default()
+    };
     expected.add_custom_header("k1", "a");
     expected.add_custom_header("k2", "b");
-    expected.set_payload(vec![129, 167, 112, 97, 121, 108, 111, 97, 100, 123]);
     assert_eq!(expected, task);
 
     assert_eq!(data_frame_header.padding(), reader.len());
@@ -250,33 +297,48 @@ fn open_task_subscription_request() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(129, 0, 0, DataFrameType::Message, 1),
+        DataFrameHeader {
+            length: 129,
+            stream_id: 1,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(258), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 258 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ControlMessageRequest::message_header(), message_header);
 
     let request = ControlMessageRequest::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        &ControlMessageType::AddTaskSubscription,
-        request.message_type()
+        ControlMessageType::AddTaskSubscription,
+        request.message_type
     );
 
     let subscription = TaskSubscription::from_data(&request).unwrap();
 
     assert_eq!(
-        TaskSubscription::new("default-topic", 0, "foo", "test", 300_000, 0, 32),
+        TaskSubscription {
+            topic_name: "default-topic".into(),
+            partition_id: 0,
+            task_type: "foo".into(),
+            lock_owner: "test".into(),
+            lock_duration: 300_000,
+            subscriber_key: 0,
+            credits: 32,
+        },
         subscription
     );
 
@@ -291,19 +353,26 @@ fn open_task_subscription_response() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(128, 0, 0, DataFrameType::Message, 1),
+        DataFrameHeader {
+            length: 128,
+            stream_id: 1,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(258), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 258 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ControlMessageResponse::message_header(), message_header);
@@ -312,7 +381,15 @@ fn open_task_subscription_response() {
     let subscription = TaskSubscription::from_data(&response).unwrap();
 
     assert_eq!(
-        TaskSubscription::new("default-topic", 0, "foo", "test", 300_000, 0, 32),
+        TaskSubscription {
+            topic_name: "default-topic".into(),
+            partition_id: 0,
+            task_type: "foo".into(),
+            lock_owner: "test".into(),
+            lock_duration: 300_000,
+            subscriber_key: 0,
+            credits: 32,
+        },
         subscription
     );
 
@@ -327,14 +404,18 @@ fn task_subscription_locked_task() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(264, 0, 0, DataFrameType::Message, 1),
+        DataFrameHeader {
+            length: 264,
+            stream_id: 1,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::FullDuplexSingleMessage),
+        TransportHeader { protocol: TransportProtocol::FullDuplexSingleMessage },
         transport_header
     );
 
@@ -344,10 +425,15 @@ fn task_subscription_locked_task() {
     let response = SubscribedEvent::from_bytes(&mut reader).unwrap();
     let task = TaskEvent::from_data(&response).unwrap();
 
-    let mut expected = TaskEvent::new("LOCKED", "foo", 3);
-    expected.set_lock_owner("test");
-    expected.set_lock_time(1_502_612_949_248);
-    expected.set_payload(vec![192]);
+    let expected = TaskEvent {
+        state: LOCKED_STATE.into(),
+        task_type: "foo".into(),
+        retries: 3,
+        lock_owner: "test".into(),
+        lock_time: 1_502_612_949_248,
+        payload: vec![192].into(),
+        ..Default::default()
+    };
     assert_eq!(expected, task);
 
     assert_eq!(data_frame_header.padding(), reader.len());
@@ -361,27 +447,34 @@ fn close_task_subscription_request() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(97, 0, 0, DataFrameType::Message, 1),
+        DataFrameHeader {
+            length: 97,
+            stream_id: 1,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(259), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 259 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ControlMessageRequest::message_header(), message_header);
 
     let request = ControlMessageRequest::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        &ControlMessageType::RemoveTaskSubscription,
-        request.message_type()
+        ControlMessageType::RemoveTaskSubscription,
+        request.message_type
     );
 
     let subscription = TaskSubscription::from_data(&request).unwrap();
@@ -402,19 +495,26 @@ fn close_task_subscription_response() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(124, 0, 0, DataFrameType::Message, 1),
+        DataFrameHeader {
+            length: 124,
+            stream_id: 1,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(259), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 259 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ControlMessageResponse::message_header(), message_header);
@@ -423,7 +523,15 @@ fn close_task_subscription_response() {
     let subscription = TaskSubscription::from_data(&response).unwrap();
 
     assert_eq!(
-        TaskSubscription::new("default-topic", 0, "", "default", 0, 0, 0),
+        TaskSubscription {
+            topic_name: "default-topic".into(),
+            partition_id: 0,
+            task_type: "".into(),
+            lock_owner: "default".into(),
+            lock_duration: 0,
+            subscriber_key: 0,
+            credits: 0,
+        },
         subscription
     );
 
@@ -438,19 +546,25 @@ fn open_topic_subscription_request() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(125, 0, 0, DataFrameType::Message, 0),
+        DataFrameHeader {
+            length: 125,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(258), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 258 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ExecuteCommandRequest::message_header(), message_header);
@@ -458,7 +572,13 @@ fn open_topic_subscription_request() {
     let request = ExecuteCommandRequest::from_bytes(&mut reader).unwrap();
     let subscriber = TopicSubscriber::from_data(&request).unwrap();
     assert_eq!(
-        TopicSubscriber::new(0, "foo", "SUBSCRIBE", 32, false),
+        TopicSubscriber {
+            start_position: 0,
+            name: "foo".into(),
+            state: SUBSCRIBE_STATE.into(),
+            prefetch_capacity: 32,
+            force_start: false,
+        },
         subscriber
     );
 
@@ -473,19 +593,25 @@ fn open_topic_subscription_response() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(125, 0, 0, DataFrameType::Message, 0),
+        DataFrameHeader {
+            length: 125,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(258), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 258 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ExecuteCommandResponse::message_header(), message_header);
@@ -493,7 +619,13 @@ fn open_topic_subscription_response() {
     let response = ExecuteCommandResponse::from_bytes(&mut reader).unwrap();
     let subscriber = TopicSubscriber::from_data(&response).unwrap();
     assert_eq!(
-        TopicSubscriber::new(0, "foo", "SUBSCRIBED", 32, false),
+        TopicSubscriber {
+            start_position: 0,
+            name: "foo".into(),
+            state: SUBSCRIBED_STATE.into(),
+            prefetch_capacity: 32,
+            force_start: false,
+        },
         subscriber
     );
 
@@ -509,33 +641,43 @@ fn close_topic_subscription_request() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(74, 0, 0, DataFrameType::Message, 0),
+        DataFrameHeader {
+            length: 74,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(259), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 259 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ControlMessageRequest::message_header(), message_header);
 
     let request = ControlMessageRequest::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        &ControlMessageType::RemoveTopicSubscription,
-        request.message_type()
+        ControlMessageType::RemoveTopicSubscription,
+        request.message_type
     );
 
     let subscription = CloseSubscription::from_data(&request).unwrap();
 
     assert_eq!(
-        CloseSubscription::new("default-topic".to_string(), 0, 123),
+        CloseSubscription {
+            topic_name: "default-topic".into(),
+            partition_id: 0,
+            subscriber_key: 123,
+        },
         subscription
     );
 
@@ -550,19 +692,25 @@ fn close_topic_subscription_response() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(73, 0, 0, DataFrameType::Message, 0),
+        DataFrameHeader {
+            length: 73,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(259), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 259 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ControlMessageResponse::message_header(), message_header);
@@ -571,7 +719,11 @@ fn close_topic_subscription_response() {
     let subscription = CloseSubscription::from_data(&response).unwrap();
 
     assert_eq!(
-        CloseSubscription::new("default-topic".to_string(), 0, 123),
+        CloseSubscription {
+            topic_name: "default-topic".into(),
+            partition_id: 0,
+            subscriber_key: 123,
+        },
         subscription
     );
 
@@ -586,19 +738,26 @@ fn create_deployment_request() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(2054, 0, 0, DataFrameType::Message, 1),
+        DataFrameHeader {
+            length: 2054,
+            stream_id: 1,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(257), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 257 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ExecuteCommandRequest::message_header(), message_header);
@@ -629,19 +788,26 @@ fn create_deployment_response() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(2116, 0, 0, DataFrameType::Message, 1),
+        DataFrameHeader {
+            length: 2116,
+            stream_id: 1,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(257), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 257 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ExecuteCommandResponse::message_header(), message_header);
@@ -679,19 +845,26 @@ fn create_workflow_instance_request() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(148, 0, 0, DataFrameType::Message, 1),
+        DataFrameHeader {
+            length: 148,
+            stream_id: 1,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(259), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 259 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ExecuteCommandRequest::message_header(), message_header);
@@ -705,7 +878,7 @@ fn create_workflow_instance_request() {
 
     let event = WorkInstanceEvent::from_data(&request).unwrap();
 
-    assert_eq!(CREATE_WORKFLOW_INSTANCE, event.state);
+    assert_eq!(CREATE_WORKFLOW_INSTANCE_STATE, event.state);
     assert_eq!("anId", event.bpmn_process_id);
     assert_eq!(-1, event.version);
     assert_eq!(-1, event.workflow_key);
@@ -725,19 +898,26 @@ fn create_workflow_instance_response() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(187, 0, 0, DataFrameType::Message, 1),
+        DataFrameHeader {
+            length: 187,
+            stream_id: 1,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(259), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 259 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ExecuteCommandResponse::message_header(), message_header);
@@ -750,7 +930,7 @@ fn create_workflow_instance_response() {
 
     let event = WorkInstanceEvent::from_data(&response).unwrap();
 
-    assert_eq!(WORKFLOW_INSTANCE_CREATED, event.state);
+    assert_eq!(WORKFLOW_INSTANCE_CREATED_STATE, event.state);
     assert_eq!("anId", event.bpmn_process_id);
     assert_eq!(2, event.version);
     assert_eq!(4_294_978_104, event.workflow_key);
@@ -769,19 +949,25 @@ fn error_topic_not_found() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(356, 0, 0, DataFrameType::Message, 0),
+        DataFrameHeader {
+            length: 356,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::RequestResponse),
+        TransportHeader { protocol: TransportProtocol::RequestResponse },
         transport_header
     );
 
     let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
-    assert_eq!(RequestResponseHeader::new(1), request_response_header);
+    assert_eq!(
+        RequestResponseHeader { request_id: 1 },
+        request_response_header
+    );
 
     let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(ErrorResponse::message_header(), message_header);
@@ -808,7 +994,13 @@ fn error_topic_not_found() {
             key: 0,
             event_type: EventType::TaskEvent,
             topic_name: "default-toic".into(),
-            command: TaskEvent::new("CREATE", "foo", 3).to_data().unwrap(),
+            command: TaskEvent {
+                state: CREATE_STATE.into(),
+                task_type: "foo".into(),
+                retries: 3,
+                ..Default::default()
+            }.to_data()
+                .unwrap(),
         },
         request
     );
@@ -825,14 +1017,17 @@ fn keep_alive() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(6, 0, 0, DataFrameType::Message, 0),
+        DataFrameHeader {
+            length: 6,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::ControlMessage),
+        TransportHeader { protocol: TransportProtocol::ControlMessage },
         transport_header
     );
 
@@ -850,14 +1045,17 @@ fn append_request() {
 
     let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        DataFrameHeader::new(218, 0, 0, DataFrameType::Message, 0),
+        DataFrameHeader {
+            length: 218,
+            ..Default::default()
+        },
         data_frame_header
     );
     assert_eq!(dump_length, data_frame_header.aligned_length());
 
     let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
     assert_eq!(
-        TransportHeader::new(TransportProtocol::FullDuplexSingleMessage),
+        TransportHeader { protocol: TransportProtocol::FullDuplexSingleMessage },
         transport_header
     );
 
@@ -1028,17 +1226,17 @@ fn append_request() {
         0,
     ];
     assert_eq!(
-        AppendRequest::new(
-            "default",
-            0,
-            1,
-            4_294_967_296,
-            1,
-            4_294_967_392,
-            "localhost",
-            8001,
-            data,
-        ),
+        AppendRequest {
+            topic_name: "default".into(),
+            partition_id: 0,
+            term: 1,
+            previous_event_position: 4_294_967_296,
+            previous_event_term: 1,
+            commit_position: 4_294_967_392,
+            host: "localhost".into(),
+            port: 8001,
+            data: data.into(),
+        },
         response
     );
 
