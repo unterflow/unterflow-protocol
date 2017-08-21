@@ -1,5 +1,5 @@
 use io::{Data, FromBytes, HasBlockLength, HasData, HasMessageLength, Message, ToBytes, ToData};
-use message::TaskEvent;
+use message::{NIL, TaskEvent};
 use std;
 
 #[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength)]
@@ -57,20 +57,11 @@ pub enum ErrorCode {
 #[message(template_id = "0", schema_id = "0", version = "1")]
 #[data = "error_data"]
 pub struct ErrorResponse {
-    error_code: ErrorCode,
-    error_data: Data,
-    failed_request: Data,
+    pub error_code: ErrorCode,
+    pub error_data: Data,
+    pub failed_request: Data,
 }
 
-impl ErrorResponse {
-    pub fn new<D: Into<Data>>(error_code: ErrorCode, error_data: D, failed_request: D) -> Self {
-        ErrorResponse {
-            error_code,
-            error_data: error_data.into(),
-            failed_request: failed_request.into(),
-        }
-    }
-}
 
 #[derive(Debug, PartialEq, FromBytes, ToBytes, HasBlockLength, HasMessageLength)]
 pub enum ControlMessageType {
@@ -146,12 +137,12 @@ pub enum EventType {
 #[message(template_id = "20", schema_id = "0", version = "1")]
 #[data = "command"]
 pub struct ExecuteCommandRequest {
-    partition_id: u16,
-    position: u64,
-    key: u64,
-    event_type: EventType,
-    topic_name: String,
-    command: Data,
+    pub partition_id: u16,
+    pub position: u64,
+    pub key: u64,
+    pub event_type: EventType,
+    pub topic_name: String,
+    pub command: Data,
 }
 
 impl ExecuteCommandRequest {
@@ -169,7 +160,7 @@ impl ExecuteCommandRequest {
     pub fn complete_task(message: &SubscribedEvent, mut event: TaskEvent) -> Result<Self, std::io::Error> {
         event.set_state("COMPLETE");
         if event.payload().is_empty() {
-            event.set_payload(vec![0xc0]);
+            event.set_payload(NIL.to_vec());
         }
         let command = event.to_data()?;
         Ok(ExecuteCommandRequest {
@@ -187,11 +178,11 @@ impl ExecuteCommandRequest {
 #[message(template_id = "21", schema_id = "0", version = "1")]
 #[data = "event"]
 pub struct ExecuteCommandResponse {
-    partition_id: u16,
-    position: u64,
-    key: u64,
-    topic_name: String,
-    event: Data,
+    pub partition_id: u16,
+    pub position: u64,
+    pub key: u64,
+    pub topic_name: String,
+    pub event: Data,
 }
 
 impl ExecuteCommandResponse {
@@ -270,10 +261,8 @@ impl AppendRequest {
 }
 
 
-
 #[cfg(test)]
 mod test {
-
     use super::*;
     use byteorder::{LittleEndian, WriteBytesExt};
     use std::io::Write;
@@ -418,5 +407,4 @@ mod test {
             ExecuteCommandResponse::message_header()
         );
     }
-
 }

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<definitions xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" id="definitions_257a711c-a523-46a3-b50e-41a78beb2519" targetNamespace="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL">
+  <process id="anId" isExecutable="true">
+    <startEvent id="startEvent_9dfeda8b-c594-4028-89ec-367d8447ce77">
+      <outgoing>sequenceFlow_c3cd2675-ccda-441c-ad7d-3d0503f5cfab</outgoing>
+    </startEvent>
+    <endEvent id="endEvent_1ad30598-f87f-461c-850d-ade5462451df">
+      <incoming>sequenceFlow_c3cd2675-ccda-441c-ad7d-3d0503f5cfab</incoming>
+    </endEvent>
+    <sequenceFlow id="sequenceFlow_c3cd2675-ccda-441c-ad7d-3d0503f5cfab" sourceRef="startEvent_9dfeda8b-c594-4028-89ec-367d8447ce77" targetRef="endEvent_1ad30598-f87f-461c-850d-ade5462451df"/>
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_426cf2e5-f3ae-4350-a797-470c9c32871a">
+    <bpmndi:BPMNPlane bpmnElement="anId" id="BPMNPlane_94e9f9d7-0b2d-4b07-95bb-70d4acfb3e98">
+      <bpmndi:BPMNShape bpmnElement="startEvent_9dfeda8b-c594-4028-89ec-367d8447ce77" id="BPMNShape_0fecfd6a-470a-4cdb-81ca-507fcb38acc9">
+        <dc:Bounds height="36.0" width="36.0" x="100.0" y="100.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape bpmnElement="endEvent_1ad30598-f87f-461c-850d-ade5462451df" id="BPMNShape_70171bef-d3e6-4bbc-b87e-028d9d19efaf">
+        <dc:Bounds height="36.0" width="36.0" x="186.0" y="100.0"/>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge bpmnElement="sequenceFlow_c3cd2675-ccda-441c-ad7d-3d0503f5cfab" id="BPMNEdge_04112b24-b5ad-488e-98d4-b3a5fb91c2ee">
+        <di:waypoint x="136.0" y="118.0"/>
+        <di:waypoint x="186.0" y="118.0"/>
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

@@ -579,6 +579,189 @@ fn close_topic_subscription_response() {
 }
 
 #[test]
+fn create_deployment_request() {
+    dump!(reader, "create-deployment-request.bin");
+
+    let dump_length = reader.len();
+
+    let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(
+        DataFrameHeader::new(2054, 0, 0, DataFrameType::Message, 1),
+        data_frame_header
+    );
+    assert_eq!(dump_length, data_frame_header.aligned_length());
+
+    let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(
+        TransportHeader::new(TransportProtocol::RequestResponse),
+        transport_header
+    );
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(257), request_response_header);
+
+    let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(ExecuteCommandRequest::message_header(), message_header);
+
+    let request = ExecuteCommandRequest::from_bytes(&mut reader).unwrap();
+    assert_eq!(0, request.partition_id);
+    assert_eq!(u64::max_value(), request.position);
+    assert_eq!(u64::max_value(), request.key);
+    assert_eq!(EventType::DeploymentEvent, request.event_type);
+    assert_eq!("default-topic", request.topic_name);
+
+    let event = DeploymentEvent::from_data(&request).unwrap();
+
+    assert_eq!(CREATE_DEPLOYMENT_STATE, event.state);
+    assert!(event.deployed_workflows.is_empty());
+
+    dump_vec!(xml, "process.xml");
+    assert_eq!(xml, event.bpmn_xml.to_vec());
+
+    assert_eq!(data_frame_header.padding(), reader.len());
+}
+
+#[test]
+fn create_deployment_response() {
+    dump!(reader, "create-deployment-response.bin");
+
+    let dump_length = reader.len();
+
+    let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(
+        DataFrameHeader::new(2116, 0, 0, DataFrameType::Message, 1),
+        data_frame_header
+    );
+    assert_eq!(dump_length, data_frame_header.aligned_length());
+
+    let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(
+        TransportHeader::new(TransportProtocol::RequestResponse),
+        transport_header
+    );
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(257), request_response_header);
+
+    let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(ExecuteCommandResponse::message_header(), message_header);
+
+    let response = ExecuteCommandResponse::from_bytes(&mut reader).unwrap();
+    assert_eq!(0, response.partition_id);
+    assert_eq!(4_294_967_392, response.position);
+    assert_eq!(4_294_967_392, response.key);
+    assert_eq!("default-topic", response.topic_name);
+
+    let event = DeploymentEvent::from_data(&response).unwrap();
+
+    assert_eq!(DEPLOYMENT_CREATED_STATE, event.state);
+    assert_eq!(
+        vec![
+            DeployedWorkflow {
+                bpmn_process_id: "anId".into(),
+                version: 1,
+            },
+        ],
+        event.deployed_workflows
+    );
+
+    dump_vec!(xml, "process.xml");
+    assert_eq!(xml, event.bpmn_xml.to_vec());
+
+    assert_eq!(data_frame_header.padding(), reader.len());
+}
+
+#[test]
+fn create_workflow_instance_request() {
+    dump!(reader, "create-workflow-instance-request.bin");
+
+    let dump_length = reader.len();
+
+    let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(
+        DataFrameHeader::new(148, 0, 0, DataFrameType::Message, 1),
+        data_frame_header
+    );
+    assert_eq!(dump_length, data_frame_header.aligned_length());
+
+    let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(
+        TransportHeader::new(TransportProtocol::RequestResponse),
+        transport_header
+    );
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(259), request_response_header);
+
+    let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(ExecuteCommandRequest::message_header(), message_header);
+
+    let request = ExecuteCommandRequest::from_bytes(&mut reader).unwrap();
+    assert_eq!(0, request.partition_id);
+    assert_eq!(u64::max_value(), request.position);
+    assert_eq!(u64::max_value(), request.key);
+    assert_eq!(EventType::WorkflowInstanceEvent, request.event_type);
+    assert_eq!("default-topic", request.topic_name);
+
+    let event = WorkInstanceEvent::from_data(&request).unwrap();
+
+    assert_eq!(CREATE_WORKFLOW_INSTANCE, event.state);
+    assert_eq!("anId", event.bpmn_process_id);
+    assert_eq!(-1, event.version);
+    assert_eq!(-1, event.workflow_key);
+    assert_eq!(-1, event.workflow_instance_key);
+    assert_eq!("", event.activity_id);
+    assert!(event.payload.is_empty());
+
+
+    assert_eq!(data_frame_header.padding(), reader.len());
+}
+
+#[test]
+fn create_workflow_instance_response() {
+    dump!(reader, "create-workflow-instance-response.bin");
+
+    let dump_length = reader.len();
+
+    let data_frame_header = DataFrameHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(
+        DataFrameHeader::new(187, 0, 0, DataFrameType::Message, 1),
+        data_frame_header
+    );
+    assert_eq!(dump_length, data_frame_header.aligned_length());
+
+    let transport_header = TransportHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(
+        TransportHeader::new(TransportProtocol::RequestResponse),
+        transport_header
+    );
+
+    let request_response_header = RequestResponseHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(RequestResponseHeader::new(259), request_response_header);
+
+    let message_header = MessageHeader::from_bytes(&mut reader).unwrap();
+    assert_eq!(ExecuteCommandResponse::message_header(), message_header);
+
+    let response = ExecuteCommandResponse::from_bytes(&mut reader).unwrap();
+    assert_eq!(0, response.partition_id);
+    assert_eq!(4_294_980_272, response.position);
+    assert_eq!(4_294_980_272, response.key);
+    assert_eq!("default-topic", response.topic_name);
+
+    let event = WorkInstanceEvent::from_data(&response).unwrap();
+
+    assert_eq!(WORKFLOW_INSTANCE_CREATED, event.state);
+    assert_eq!("anId", event.bpmn_process_id);
+    assert_eq!(2, event.version);
+    assert_eq!(4_294_978_104, event.workflow_key);
+    assert_eq!(4_294_980_272, event.workflow_instance_key);
+    assert_eq!("", event.activity_id);
+    assert_eq!(NIL.to_vec(), event.payload.to_vec());
+
+    assert_eq!(data_frame_header.padding(), reader.len());
+}
+
+#[test]
 fn error_topic_not_found() {
     dump!(reader, "error-topic-not-found.bin");
 
@@ -604,7 +787,32 @@ fn error_topic_not_found() {
     assert_eq!(ErrorResponse::message_header(), message_header);
 
     let response = ErrorResponse::from_bytes(&mut reader).unwrap();
-    assert_eq!(ErrorResponse::new(ErrorCode::TopicNotFound, vec![67, 97, 110, 110, 111, 116, 32, 101, 120, 101, 99, 117, 116, 101, 32, 99, 111, 109, 109, 97, 110, 100, 46, 32, 84, 111, 112, 105, 99, 32, 119, 105, 116, 104, 32, 110, 97, 109, 101, 32, 39, 100, 101, 102, 97, 117, 108, 116, 45, 116, 111, 105, 99, 39, 32, 97, 110, 100, 32, 112, 97, 114, 116, 105, 116, 105, 111, 110, 32, 105, 100, 32, 39, 48, 39, 32, 110, 111, 116,32, 102, 111, 117, 110, 100], vec![19, 0, 20, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 12, 0, 100, 101, 102, 97, 117, 108, 116, 45, 116, 111, 105, 99, 205, 0, 136, 165, 115, 116, 97, 116, 101, 166, 67, 82, 69, 65, 84, 69, 168, 108, 111, 99, 107, 84, 105, 109, 101, 211, 128, 0, 0, 0, 0, 0, 0, 0, 169, 108, 111, 99, 107, 79, 119, 110, 101, 114, 160, 167, 114, 101, 116, 114, 105, 101, 115, 3, 164, 116, 121, 112, 101, 163, 102, 111, 111, 167, 104, 101, 97, 100, 101, 114, 115, 134, 179, 119, 111, 114, 107, 102, 108, 111, 119, 73, 110, 115, 116, 97, 110, 99, 101, 75, 101, 121, 255, 173, 98, 112, 109, 110, 80, 114, 111, 99, 101, 115, 115, 73, 100, 160, 185, 119, 111, 114, 107, 102, 108, 111, 119, 68, 101, 102, 105, 110, 105, 116, 105, 111, 110, 86, 101, 114, 115, 105, 111, 110, 255, 171, 119, 111, 114, 107, 102, 108, 111, 119, 75, 101, 121, 255, 170, 97, 99, 116, 105, 118, 105, 116, 121, 73, 100, 160, 179, 97, 99, 116, 105, 118, 105, 116, 121, 73, 110, 115, 116, 97, 110, 99, 101, 75, 101, 121, 255, 173, 99, 117, 115, 116, 111, 109, 72, 101, 97, 100, 101, 114, 115, 128, 167, 112, 97, 121, 108, 111, 97, 100, 196, 1, 192]), response);
+    assert_eq!(ErrorCode::TopicNotFound, response.error_code);
+    assert_eq!(
+        "Cannot execute command. Topic with name 'default-toic' and partition id '0' not found",
+        String::from_utf8(response.error_data.into()).unwrap()
+    );
+    assert_eq!(248, response.failed_request.len());
+
+    // failed request should be a valid execute command request
+    let failed_request: Vec<u8> = response.failed_request.into();
+    let mut failed_request = failed_request.as_slice();
+    let message_header = MessageHeader::from_bytes(&mut failed_request).unwrap();
+    assert_eq!(ExecuteCommandRequest::message_header(), message_header);
+
+    let request = ExecuteCommandRequest::from_bytes(&mut failed_request).unwrap();
+    assert_eq!(
+        ExecuteCommandRequest {
+            partition_id: 0,
+            position: 0,
+            key: 0,
+            event_type: EventType::TaskEvent,
+            topic_name: "default-toic".into(),
+            command: TaskEvent::new("CREATE", "foo", 3).to_data().unwrap(),
+        },
+        request
+    );
+
 
     assert_eq!(data_frame_header.padding(), reader.len());
 }
@@ -835,5 +1043,4 @@ fn append_request() {
     );
 
     assert_eq!(data_frame_header.padding(), reader.len());
-
 }

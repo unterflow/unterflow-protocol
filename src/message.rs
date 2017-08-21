@@ -1,6 +1,8 @@
 use serde_bytes::ByteBuf;
 use std::collections::HashMap;
 
+pub const NIL: &[u8] = &[0xc0];
+
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 pub struct TopologyRequest {}
 
@@ -154,7 +156,7 @@ impl CloseSubscription {
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 #[serde(default)]
 #[serde(rename_all = "camelCase")]
-struct TaskHeaders {
+pub struct TaskHeaders {
     workflow_instance_key: i64,
     bpmn_process_id: String,
     workflow_definition_version: i64,
@@ -180,16 +182,16 @@ impl Default for TaskHeaders {
 #[serde(default)]
 #[serde(rename_all = "camelCase")]
 pub struct TaskEvent {
-    state: String,
-    lock_time: i64,
-    lock_owner: String,
-    retries: i32,
+    pub state: String,
+    pub lock_time: i64,
+    pub lock_owner: String,
+    pub retries: i32,
     #[serde(rename = "type")]
-    task_type: String,
-    headers: TaskHeaders,
+    pub task_type: String,
+    pub headers: TaskHeaders,
     // TODO(menski): this is probably not a string/string hash map
-    custom_headers: HashMap<String, String>,
-    payload: ByteBuf,
+    pub custom_headers: HashMap<String, String>,
+    pub payload: ByteBuf,
 }
 
 impl Default for TaskEvent {
@@ -202,7 +204,7 @@ impl Default for TaskEvent {
             task_type: String::new(),
             headers: TaskHeaders::default(),
             custom_headers: Default::default(),
-            payload: vec![0xc0].into(),
+            payload: NIL.to_vec().into(),
         }
     }
 }
@@ -240,4 +242,58 @@ impl TaskEvent {
     pub fn add_custom_header<S: Into<String>>(&mut self, key: S, value: S) {
         self.custom_headers.insert(key.into(), value.into());
     }
+}
+
+pub const CREATE_DEPLOYMENT_STATE: &'static str = "CREATE_DEPLOYMENT";
+pub const DEPLOYMENT_CREATED_STATE: &'static str = "DEPLOYMENT_CREATED";
+pub const DEPLOYMENT_REJECTED_STATE: &'static str = "DEPLOYMENT_REJECTED";
+
+#[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
+#[serde(default)]
+#[serde(rename_all = "camelCase")]
+pub struct DeploymentEvent {
+    pub state: String,
+    pub deployed_workflows: Vec<DeployedWorkflow>,
+    pub bpmn_xml: ByteBuf,
+}
+
+#[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
+#[serde(default)]
+#[serde(rename_all = "camelCase")]
+pub struct DeployedWorkflow {
+    pub bpmn_process_id: String,
+    pub version: i32,
+}
+
+
+pub const CREATE_WORKFLOW_INSTANCE: &'static str = "CREATE_WORKFLOW_INSTANCE";
+pub const WORKFLOW_INSTANCE_CREATED: &'static str = "WORKFLOW_INSTANCE_CREATED";
+pub const WORKFLOW_INSTANCE_REJECTED: &'static str = "WORKFLOW_INSTANCE_REJECTED";
+pub const START_EVENT_OCCURRED: &'static str = "START_EVENT_OCCURRED";
+pub const END_EVENT_OCCURRED: &'static str = "END_EVENT_OCCURRED";
+pub const SEQUENCE_FLOW_TAKEN: &'static str = "SEQUENCE_FLOW_TAKEN";
+pub const ACTIVITY_READY: &'static str = "ACTIVITY_READY";
+pub const ACTIVITY_ACTIVATED: &'static str = "ACTIVITY_ACTIVATED";
+pub const ACTIVITY_COMPLETING: &'static str = "ACTIVITY_COMPLETING";
+pub const ACTIVITY_COMPLETED: &'static str = "ACTIVITY_COMPLETED";
+pub const ACTIVITY_TERMINATED: &'static str = "ACTIVITY_TERMINATED";
+pub const WORKFLOW_INSTANCE_COMPLETED: &'static str = "WORKFLOW_INSTANCE_COMPLETED";
+pub const CANCEL_WORKFLOW_INSTANCE: &'static str = "CANCEL_WORKFLOW_INSTANCE";
+pub const WORKFLOW_INSTANCE_CANCELED: &'static str = "WORKFLOW_INSTANCE_CANCELED";
+pub const CANCEL_WORKFLOW_INSTANCE_REJECTED: &'static str = "CANCEL_WORKFLOW_INSTANCE_REJECTED";
+pub const UPDATE_PAYLOAD: &'static str = "UPDATE_PAYLOAD";
+pub const PAYLOAD_UPDATED: &'static str = "PAYLOAD_UPDATED";
+pub const UPDATE_PAYLOAD_REJECTED: &'static str = "UPDATE_PAYLOAD_REJECTED";
+
+#[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
+#[serde(default)]
+#[serde(rename_all = "camelCase")]
+pub struct WorkInstanceEvent {
+    pub state: String,
+    pub bpmn_process_id: String,
+    pub version: i32,
+    pub workflow_key: i64,
+    pub workflow_instance_key: i64,
+    pub activity_id: String,
+    pub payload: ByteBuf,
 }
