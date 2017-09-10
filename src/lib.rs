@@ -222,8 +222,8 @@ pub enum TransportMessage {
 
 impl TransportMessage {
     pub fn request<M: Into<RequestResponseMessage> + ToMessageHeader + HasMessageLength>(request_id: u64, message: M) -> Self {
-        let length = TransportHeader::block_length() as u32 + RequestResponseHeader::block_length() as u32 + MessageHeader::block_length() as u32 +
-            message.message_length();
+        let length = u32::from(TransportHeader::block_length()) + u32::from(RequestResponseHeader::block_length()) +
+            u32::from(MessageHeader::block_length()) + message.message_length();
 
         let request_response = RequestResponse {
             frame_header: DataFrameHeader {

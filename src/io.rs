@@ -239,7 +239,7 @@ impl FromBytes for Data {
     fn from_bytes(reader: &mut Read) -> Result<Self, io::Error> {
         let length = reader.read_u16::<LittleEndian>()?;
         let mut buffer = Vec::with_capacity(length as usize);
-        let mut handle = reader.take(length as u64);
+        let mut handle = reader.take(u64::from(length));
         handle.read_to_end(&mut buffer)?;
         Ok(Data(buffer))
     }
