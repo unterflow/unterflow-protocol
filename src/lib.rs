@@ -90,6 +90,7 @@ impl ToBytes for RequestResponseMessage {
     }
 }
 
+
 #[derive(Debug)]
 pub struct RequestResponse {
     pub frame_header: DataFrameHeader,
@@ -256,6 +257,14 @@ impl TransportMessage {
                 let message = ControlRequest::read(frame_header, transport_header, reader)?;
                 Ok(TransportMessage::ControlRequest(message))
             }
+        }
+    }
+
+    pub fn length(&self) -> usize {
+        match *self {
+            TransportMessage::RequestResponse(ref r) => r.frame_header.aligned_length(),
+            TransportMessage::ControlRequest(ref r) => r.frame_header.aligned_length(),
+            TransportMessage::SingleRequest(ref r) => r.frame_header.aligned_length(),
         }
     }
 }
