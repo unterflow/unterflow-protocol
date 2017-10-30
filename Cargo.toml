@@ -1,0 +1,13 @@
+[package]
+authors = ["Sebastian Menski <sebastian@menski.org>"]
+documentation = "https://github.com/unterflow/unterflow-protocol"
+homepage = "https://github.com/unterflow/unterflow-protocol"
+keywords = ["zeebe"]
+license = "Apache-2.0"
+name = "unterflow-protocol"
+readme = "README.md"
+repository = "https://github.com/unterflow/unterflow-protocol"
+version = "0.1.0"
+
+[badges]
+travis-ci = { repository = "unterflow/unterflow-protocol" }
