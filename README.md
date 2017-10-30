@@ -1,6 +1,6 @@
 # unterflow-protocol [![Build Status](https://travis-ci.org/unterflow/unterflow-protocol.svg?branch=master)](https://travis-ci.org/unterflow/unterflow-protocol)
 
-Zeebe Protocol
+Rust implementation of the [Zeebe](https://zeebe.io) protocol.
 
 # License
 

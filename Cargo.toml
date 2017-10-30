@@ -10,4 +10,6 @@ repository = "https://github.com/unterflow/unterflow-protocol"
 version = "0.1.0"
 
 [badges]
-travis-ci = { repository = "unterflow/unterflow-protocol" }
+
+[badges.travis-ci]
+repository = "unterflow/unterflow-protocol"
