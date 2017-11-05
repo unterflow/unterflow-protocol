@@ -13,3 +13,8 @@ version = "0.1.0"
 
 [badges.travis-ci]
 repository = "unterflow/unterflow-protocol"
+
+[dependencies]
+rmp-serde = "0.13.7"
+serde = "1.0.18"
+serde_derive = "1.0.18"

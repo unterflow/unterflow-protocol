@@ -1,16 +1,9 @@
-use std::io::{Error, ErrorKind};
+use error::*;
 use std::mem;
 use std::slice;
 
 const DATA_FRAME_ALIGNMENT: usize = 8;
 
-macro_rules! size_of {
-($($t:ty), *) => {{
-    let mut length = 0;
-    $(length += mem::size_of::<$t>();); *
-    length as u32
-}};
-}
 
 #[derive(Debug)]
 pub enum Frame<'f> {
@@ -76,11 +69,20 @@ pub struct RequestResponseFrame<'f> {
     data_frame_header: &'f DataFrameHeader,
     transport_header: &'f TransportHeader,
     request_response_header: &'f RequestResponseHeader,
-    message: &'f [u8],
+    pub message: &'f [u8],
 }
 
-pub fn request_response(version: u8, flags: u8, stream_id: u32, request_id: u64, message: &[u8]) -> Result<Vec<u8>, Error> {
-    let length = size_of!(DataFrameHeader, TransportHeader, RequestResponseHeader) + message.len() as u32;
+pub fn decode_request_response(data: &[u8]) -> Result<RequestResponseFrame, Error> {
+    match Frame::decode(data)? {
+        Frame::RequestResponse(frame) => Ok(frame),
+        frame => Err(Error::DecodeError(
+            format!("Expected request response but got {:?}", frame),
+        )),
+    }
+}
+
+pub fn encode_request_response(version: u8, flags: u8, stream_id: u32, request_id: u64, message: &[u8]) -> Result<Vec<u8>, Error> {
+    let length = (size_of!(DataFrameHeader, TransportHeader, RequestResponseHeader) + message.len()) as u32;
 
     let data_frame_header = DataFrameHeader {
         length,
@@ -114,8 +116,18 @@ pub struct FullDuplexSingleMessageFrame<'f> {
     message: &'f [u8],
 }
 
-pub fn full_duplex_single_message(version: u8, flags: u8, stream_id: u32, message: &[u8]) -> Result<Vec<u8>, Error> {
-    let length = size_of!(DataFrameHeader, TransportHeader) + message.len() as u32;
+pub fn decode_full_duplex_single_message(data: &[u8]) -> Result<FullDuplexSingleMessageFrame, Error> {
+    match Frame::decode(data)? {
+        Frame::FullDuplexSingleMessage(frame) => Ok(frame),
+        frame => Err(Error::DecodeError(format!(
+            "Expected full duplex single message but got {:?}",
+            frame
+        ))),
+    }
+}
+
+pub fn encode_full_duplex_single_message(version: u8, flags: u8, stream_id: u32, message: &[u8]) -> Result<Vec<u8>, Error> {
+    let length = (size_of!(DataFrameHeader, TransportHeader) + message.len()) as u32;
 
     let data_frame_header = DataFrameHeader {
         length,
@@ -146,8 +158,17 @@ pub struct ControlMessageFrame<'f> {
     message_type: &'f ControlMessageType,
 }
 
-pub fn control_message(version: u8, flags: u8, stream_id: u32, message_type: &ControlMessageType) -> Result<Vec<u8>, Error> {
-    let length = size_of!(DataFrameHeader, TransportHeader, ControlMessageType);
+pub fn decode_control_message(data: &[u8]) -> Result<ControlMessageFrame, Error> {
+    match Frame::decode(data)? {
+        Frame::ControlMessage(frame) => Ok(frame),
+        frame => Err(Error::DecodeError(
+            format!("Expected control message but got {:?}", frame),
+        )),
+    }
+}
+
+pub fn encode_control_message(version: u8, flags: u8, stream_id: u32, message_type: &ControlMessageType) -> Result<Vec<u8>, Error> {
+    let length = size_of!(DataFrameHeader, TransportHeader, ControlMessageType) as u32;
 
     let data_frame_header = DataFrameHeader {
         length,
@@ -176,8 +197,17 @@ pub struct PaddingFrame<'f> {
     data_frame_header: &'f DataFrameHeader,
 }
 
-pub fn padding(version: u8, flags: u8, stream_id: u32, padding: u32) -> Result<Vec<u8>, Error> {
-    let length = size_of!(DataFrameHeader) + padding;
+pub fn decode_padding(data: &[u8]) -> Result<PaddingFrame, Error> {
+    match Frame::decode(data)? {
+        Frame::Padding(frame) => Ok(frame),
+        frame => Err(Error::DecodeError(
+            format!("Expected padding but got {:?}", frame),
+        )),
+    }
+}
+
+pub fn encode_padding(version: u8, flags: u8, stream_id: u32, padding: usize) -> Result<Vec<u8>, Error> {
+    let length = (size_of!(DataFrameHeader) + padding) as u32;
 
     let data_frame_header = DataFrameHeader {
         length,
@@ -282,7 +312,7 @@ impl<'d> Decoder<'d> {
                 available,
                 num_bytes
             );
-            Err(Error::new(ErrorKind::Other, error))
+            Err(Error::DecodeError(error))
         }
     }
 
@@ -294,7 +324,7 @@ impl<'d> Decoder<'d> {
                 length,
                 self.position
             );
-            Err(Error::new(ErrorKind::Other, error))
+            Err(Error::DecodeError(error))
 
         } else if length <= self.data.len() {
             self.data = &self.data[0..length];
@@ -305,7 +335,7 @@ impl<'d> Decoder<'d> {
                 length,
                 self.data.len()
             );
-            Err(Error::new(ErrorKind::Other, error))
+            Err(Error::DecodeError(error))
         }
 
     }
@@ -344,7 +374,7 @@ impl<'d> Encoder<'d> {
                 available,
                 num_bytes
             );
-            Err(Error::new(ErrorKind::Other, error))
+            Err(Error::EncodeError(error))
         }
 
     }
@@ -362,7 +392,7 @@ impl<'d> Encoder<'d> {
                 available,
                 data.len()
             );
-            Err(Error::new(ErrorKind::Other, error))
+            Err(Error::EncodeError(error))
         }
     }
 }
@@ -373,7 +403,7 @@ mod test {
 
     #[test]
     #[cfg_attr(rustfmt, rustfmt_skip)]
-    fn decode_request_response() {
+    fn test_decode_request_response() {
         let buffer = vec![
             // length
             27, 0, 0, 0,
@@ -395,33 +425,28 @@ mod test {
             0, 0, 0, 0, 0,
         ];
 
-        let frame = Frame::decode(&buffer).unwrap();
+        let frame = decode_request_response(&buffer).unwrap();
 
-        if let Frame::RequestResponse(frame) = frame {
-            let data_frame_header = frame.data_frame_header;
-            assert_eq!(27, data_frame_header.length);
-            assert_eq!(32, data_frame_header.aligned_length());
-            assert_eq!(1, data_frame_header.version);
-            assert_eq!(12, data_frame_header.flags);
-            assert_eq!(DataFrameType::Message, data_frame_header.frame_type);
-            assert_eq!(1025, data_frame_header.stream_id);
+        let data_frame_header = frame.data_frame_header;
+        assert_eq!(27, data_frame_header.length);
+        assert_eq!(32, data_frame_header.aligned_length());
+        assert_eq!(1, data_frame_header.version);
+        assert_eq!(12, data_frame_header.flags);
+        assert_eq!(DataFrameType::Message, data_frame_header.frame_type);
+        assert_eq!(1025, data_frame_header.stream_id);
 
-            let transport_header = frame.transport_header;
-            assert_eq!(TransportProtocol::RequestResponse, transport_header.protocol);
+        let transport_header = frame.transport_header;
+        assert_eq!(TransportProtocol::RequestResponse, transport_header.protocol);
 
-            let request_response_header = frame.request_response_header;
-            assert_eq!(66051, request_response_header.request_id);
+        let request_response_header = frame.request_response_header;
+        assert_eq!(66051, request_response_header.request_id);
 
-            assert_eq!(vec![1, 2, 3, 4, 5], frame.message);
-
-        } else {
-            panic!("Expected request response frame but got {:?}", frame);
-        }
+        assert_eq!(vec![1, 2, 3, 4, 5], frame.message);
     }
 
     #[test]
     #[cfg_attr(rustfmt, rustfmt_skip)]
-    fn encode_request_response() {
+    fn test_encode_request_response() {
         let expected = vec![
             // length
             27, 0, 0, 0,
@@ -443,14 +468,14 @@ mod test {
             0, 0, 0, 0, 0,
         ];
 
-        let frame = request_response(1, 12, 1025, 66051, &vec![1, 2, 3, 4, 5]).unwrap();
+        let frame = encode_request_response(1, 12, 1025, 66051, &vec![1, 2, 3, 4, 5]).unwrap();
 
         assert_eq!(expected, frame);
     }
 
     #[test]
     #[cfg_attr(rustfmt, rustfmt_skip)]
-    fn decode_full_duplex_single_message() {
+    fn test_decode_full_duplex_single_message() {
         let buffer = vec![
             // length
             19, 0, 0, 0,
@@ -470,30 +495,25 @@ mod test {
             0, 0, 0, 0, 0
         ];
 
-        let frame = Frame::decode(&buffer).unwrap();
+        let frame = decode_full_duplex_single_message(&buffer).unwrap();
 
-        if let Frame::FullDuplexSingleMessage(frame) = frame {
-            let data_frame_header = frame.data_frame_header;
-            assert_eq!(19, data_frame_header.length);
-            assert_eq!(24, data_frame_header.aligned_length());
-            assert_eq!(1, data_frame_header.version);
-            assert_eq!(12, data_frame_header.flags);
-            assert_eq!(DataFrameType::Message, data_frame_header.frame_type);
-            assert_eq!(1025, data_frame_header.stream_id);
+        let data_frame_header = frame.data_frame_header;
+        assert_eq!(19, data_frame_header.length);
+        assert_eq!(24, data_frame_header.aligned_length());
+        assert_eq!(1, data_frame_header.version);
+        assert_eq!(12, data_frame_header.flags);
+        assert_eq!(DataFrameType::Message, data_frame_header.frame_type);
+        assert_eq!(1025, data_frame_header.stream_id);
 
-            let transport_header = frame.transport_header;
-            assert_eq!(TransportProtocol::FullDuplexSingleMessage, transport_header.protocol);
+        let transport_header = frame.transport_header;
+        assert_eq!(TransportProtocol::FullDuplexSingleMessage, transport_header.protocol);
 
-            assert_eq!(vec![1, 2, 3, 4, 5], frame.message);
-
-        } else {
-            panic!("Expected full duplex single message frame but got {:?}", frame);
-        }
+        assert_eq!(vec![1, 2, 3, 4, 5], frame.message);
     }
 
     #[test]
     #[cfg_attr(rustfmt, rustfmt_skip)]
-    fn encode_full_duplex_single_message() {
+    fn test_encode_full_duplex_single_message() {
         let expected = vec![
             // length
             19, 0, 0, 0,
@@ -513,14 +533,14 @@ mod test {
             0, 0, 0, 0, 0,
         ];
 
-        let frame = full_duplex_single_message(1, 12, 1025, &vec![1, 2, 3, 4, 5]).unwrap();
+        let frame = encode_full_duplex_single_message(1, 12, 1025, &vec![1, 2, 3, 4, 5]).unwrap();
 
         assert_eq!(expected, frame);
     }
 
     #[test]
     #[cfg_attr(rustfmt, rustfmt_skip)]
-    fn decode_keep_alive_message() {
+    fn test_decode_control_message() {
         let buffer = vec![
             // length
             18, 0, 0, 0,
@@ -540,30 +560,25 @@ mod test {
             0, 0, 0, 0, 0, 0,
         ];
 
-        let frame = Frame::decode(&buffer).unwrap();
+        let frame = decode_control_message(&buffer).unwrap();
 
-        if let Frame::ControlMessage(frame) = frame {
-            let data_frame_header = frame.data_frame_header;
-            assert_eq!(18, data_frame_header.length);
-            assert_eq!(24, data_frame_header.aligned_length());
-            assert_eq!(1, data_frame_header.version);
-            assert_eq!(12, data_frame_header.flags);
-            assert_eq!(DataFrameType::Message, data_frame_header.frame_type);
-            assert_eq!(1025, data_frame_header.stream_id);
+        let data_frame_header = frame.data_frame_header;
+        assert_eq!(18, data_frame_header.length);
+        assert_eq!(24, data_frame_header.aligned_length());
+        assert_eq!(1, data_frame_header.version);
+        assert_eq!(12, data_frame_header.flags);
+        assert_eq!(DataFrameType::Message, data_frame_header.frame_type);
+        assert_eq!(1025, data_frame_header.stream_id);
 
-            let transport_header = frame.transport_header;
-            assert_eq!(TransportProtocol::ControlMessage, transport_header.protocol);
+        let transport_header = frame.transport_header;
+        assert_eq!(TransportProtocol::ControlMessage, transport_header.protocol);
 
-            assert_eq!(&ControlMessageType::KeepAlive, frame.message_type);
-        } else {
-            panic!("Expected control message frame but got {:?}", frame);
-        }
-
+        assert_eq!(&ControlMessageType::KeepAlive, frame.message_type);
     }
 
     #[test]
     #[cfg_attr(rustfmt, rustfmt_skip)]
-    fn encode_keep_alive() {
+    fn test_encode_control_message() {
         let expected = vec![
             // length
             18, 0, 0, 0,
@@ -583,14 +598,14 @@ mod test {
             0, 0, 0, 0, 0, 0,
         ];
 
-        let frame = control_message(1, 12, 1025, &ControlMessageType::KeepAlive).unwrap();
+        let frame = encode_control_message(1, 12, 1025, &ControlMessageType::KeepAlive).unwrap();
 
         assert_eq!(expected, frame);
     }
 
     #[test]
     #[cfg_attr(rustfmt, rustfmt_skip)]
-    fn decode_padding() {
+    fn test_decode_padding() {
         let buffer = vec![
             // length
             13, 0, 0, 0,
@@ -608,25 +623,20 @@ mod test {
             0, 0, 0,
         ];
 
-        let frame = Frame::decode(&buffer).unwrap();
+        let frame = decode_padding(&buffer).unwrap();
 
-        if let Frame::Padding(frame) = frame {
-            let data_frame_header = frame.data_frame_header;
-            assert_eq!(13, data_frame_header.length);
-            assert_eq!(16, data_frame_header.aligned_length());
-            assert_eq!(1, data_frame_header.version);
-            assert_eq!(12, data_frame_header.flags);
-            assert_eq!(DataFrameType::Padding, data_frame_header.frame_type);
-            assert_eq!(1025, data_frame_header.stream_id);
-
-        } else {
-            panic!("Expected padding frame but got {:?}", frame);
-        }
+        let data_frame_header = frame.data_frame_header;
+        assert_eq!(13, data_frame_header.length);
+        assert_eq!(16, data_frame_header.aligned_length());
+        assert_eq!(1, data_frame_header.version);
+        assert_eq!(12, data_frame_header.flags);
+        assert_eq!(DataFrameType::Padding, data_frame_header.frame_type);
+        assert_eq!(1025, data_frame_header.stream_id);
     }
 
     #[test]
     #[cfg_attr(rustfmt, rustfmt_skip)]
-    fn encode_padding() {
+    fn test_encode_padding() {
         let expected = vec![
             // length
             13, 0, 0, 0,
@@ -644,7 +654,7 @@ mod test {
             0, 0, 0,
         ];
 
-        let frame = padding(1, 12, 1025, 1).unwrap();
+        let frame = encode_padding(1, 12, 1025, 1).unwrap();
 
         assert_eq!(expected, frame);
     }
