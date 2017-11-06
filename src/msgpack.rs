@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
-// hack to get an empty map serialized
-pub type TopologyRequest = HashMap<u8, u8>;
+pub const EMPTY_MAP: u8 = 0x80;
+pub const EMPTY_ARRAY: u8 = 0x90;
+pub const EMPTY_NIL: u8 = 0xc0;
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]

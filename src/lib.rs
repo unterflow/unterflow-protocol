@@ -11,22 +11,19 @@ pub mod msgpack;
 pub mod sbe;
 
 use error::Error;
-use rmp_serde::{Deserializer, Serializer};
+use rmp_serde::Deserializer;
 
 use serde::Deserialize;
-use serde::Serialize;
 
 pub fn topology_request(request_id: u64) -> Result<Vec<u8>, Error> {
-    let request = msgpack::TopologyRequest::new();
-
-    let mut buffer = Vec::new();
-    request.serialize(&mut Serializer::new(&mut buffer))?;
+    let buffer = [msgpack::EMPTY_MAP];
 
     let buffer = sbe::encode_control_message(
         sbe::ANY_PARTITION,
         sbe::ControlMessageType::REQUEST_TOPOLOGY,
         &buffer,
     )?;
+
     frame::encode_request_response(0, 0, 0, request_id, &buffer)
 }
 
