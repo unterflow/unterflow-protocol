@@ -1,5 +1,10 @@
 language: rust
 
+sudo: required
+
+services:
+  - docker
+
 cache: cargo
 
 rust:
@@ -10,3 +15,10 @@ rust:
 matrix:
   allow_failures:
     - rust: nightly
+
+before_script:
+  - docker run -p 51015:51015 -d camunda/zeebe:SNAPSHOT
+
+script:
+  - cargo build --verbose
+  - cargo test --verbose --features broker-it
