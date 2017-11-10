@@ -40,7 +40,7 @@ pub struct TopicLeader {
     pub host: String,
     pub port: u32,
     pub topic_name: String,
-    pub partition_id: u32,
+    pub partition_id: u16,
 }
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
@@ -173,5 +173,28 @@ impl Default for TaskHeaders {
             activity_id: "".to_string(),
             activity_instance_key: -1,
         }
+    }
+}
+
+#[derive(Debug, PartialEq, Deserialize, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct TopicEvent {
+    pub state: TopicState,
+    pub name: String,
+    pub partitions: u32,
+}
+
+#[derive(Debug, PartialEq)]
+pub enum TopicState {
+    Create,
+    Created,
+    CreateRejected,
+}
+
+enum_serialize! {
+    TopicState => {
+        TopicState::Create => "CREATE",
+        TopicState::Created => "CREATED",
+        TopicState::CreateRejected => "CREATE_REJECTED"
     }
 }

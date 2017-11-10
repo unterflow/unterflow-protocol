@@ -17,10 +17,7 @@ matrix:
     - rust: nightly
 
 before_script:
-  - docker run -p 51015:51015 -d camunda/zeebe:SNAPSHOT
-  - curl -sL https://github.com/zeebe-io/zbc-go/releases/download/0.4.0/zbctl-0.4.0-Linux_x86_64.tar.gz | tar xvzf -
-  - sleep 2
-  - ./zbctl create topic --name default-topic --partitions 1
+  - docker run -p 51015:51015 --name zeebe -e ZEEBE_LOG_LEVEL=debug -d camunda/zeebe:SNAPSHOT
 
 script:
   - cargo build --verbose

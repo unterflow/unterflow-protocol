@@ -68,7 +68,7 @@ impl<'f> Frame<'f> {
 pub struct RequestResponseFrame<'f> {
     data_frame_header: &'f DataFrameHeader,
     transport_header: &'f TransportHeader,
-    request_response_header: &'f RequestResponseHeader,
+    pub request_response_header: &'f RequestResponseHeader,
     pub message: &'f [u8],
 }
 
@@ -281,8 +281,8 @@ pub enum ControlMessageType {
 
 #[derive(Debug)]
 #[repr(C, packed)]
-struct RequestResponseHeader {
-    request_id: u64,
+pub struct RequestResponseHeader {
+    pub request_id: u64,
 }
 
 #[derive(Debug)]
