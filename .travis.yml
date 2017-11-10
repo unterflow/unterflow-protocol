@@ -22,3 +22,6 @@ before_script:
 script:
   - cargo build --verbose
   - cargo test --verbose --features broker-it
+
+after_failure:
+  - docker logs zeebe
