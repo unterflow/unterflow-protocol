@@ -1,7 +1,7 @@
-
 use error::Error;
 use rmp_serde;
-use serde::{Deserialize, Deserializer, Serializer};
+use rmp_serde::encode::StructMapWriter;
+use serde::{Deserialize, Deserializer, Serialize, Serializer};
 use serde::de::{self, Visitor};
 
 use serde_bytes::ByteBuf;
@@ -11,6 +11,21 @@ use std::fmt;
 pub const EMPTY_MAP: u8 = 0x80;
 pub const EMPTY_ARRAY: u8 = 0x90;
 pub const NIL: u8 = 0xc0;
+
+pub fn serialize<S: Serialize>(data: &S) -> Result<Vec<u8>, Error> {
+    let mut buffer = Vec::new();
+    data.serialize(&mut rmp_serde::Serializer::with(
+        &mut buffer,
+        StructMapWriter,
+    ))?;
+    Ok(buffer)
+}
+
+pub fn deserialize<'d, D: Deserialize<'d>>(data: &[u8]) -> Result<D, Error> {
+    let mut de = rmp_serde::Deserializer::new(data);
+    let value = Deserialize::deserialize(&mut de)?;
+    Ok(value)
+}
 
 #[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -66,9 +81,7 @@ impl Default for TaskEvent {
 impl TaskEvent {
     pub fn payload_as<'de, D: Deserialize<'de>>(&self) -> Result<D, Error> {
         let buffer: &[u8] = self.payload.as_ref();
-        let mut de = rmp_serde::Deserializer::new(buffer);
-        let payload = Deserialize::deserialize(&mut de)?;
-        Ok(payload)
+        deserialize(buffer)
     }
 }
 

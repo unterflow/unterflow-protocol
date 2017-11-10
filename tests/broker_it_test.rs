@@ -58,7 +58,10 @@ fn test_create_task() {
     let bytes = stream.read(&mut buffer).unwrap();
     buffer.truncate(bytes);
 
-    let event = create_task_response(&buffer).unwrap();
+    let TaskEvent { metadata, event } = create_task_response(&buffer).unwrap();
+    assert_eq!(1, metadata.partition_id);
+    assert!(metadata.position > 0);
+    assert!(metadata.key > 0);
 
     assert_eq!(msgpack::TaskState::Created, event.state);
     assert_eq!("foo", event.task_type);

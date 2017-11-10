@@ -13,10 +13,9 @@ pub mod sbe;
 
 
 use error::Error;
+use msgpack::{deserialize, serialize};
+use serde::Serialize;
 
-use rmp_serde::{Deserializer, Serializer};
-use rmp_serde::encode::StructMapWriter;
-use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
 pub fn topology_request(request_id: u64) -> Result<Vec<u8>, Error> {
@@ -34,9 +33,7 @@ pub fn topology_request(request_id: u64) -> Result<Vec<u8>, Error> {
 pub fn topology_response(data: &[u8]) -> Result<msgpack::TopologyResponse, Error> {
     let frame = frame::decode_request_response(data)?;
     let data = sbe::decode_control_message_response(frame.message)?;
-    let mut de = Deserializer::new(data);
-    let topology = Deserialize::deserialize(&mut de)?;
-    Ok(topology)
+    deserialize(data)
 }
 
 pub struct CreateTaskBuilder {
@@ -57,17 +54,17 @@ impl CreateTaskBuilder {
         }
     }
 
-    pub fn retries<'a>(&'a mut self, retries: i32) -> &'a mut Self {
+    pub fn retries(&mut self, retries: i32) -> &mut Self {
         self.task_event.retries = retries;
         self
     }
 
-    pub fn custom_headers<'a>(&'a mut self, custom_headers: HashMap<String, String>) -> &'a mut Self {
+    pub fn custom_headers(&mut self, custom_headers: HashMap<String, String>) -> &mut Self {
         self.task_event.custom_headers = custom_headers;
         self
     }
 
-    pub fn custom_header<'a>(&'a mut self, key: &str, value: &str) -> &'a mut Self {
+    pub fn custom_header(&mut self, key: &str, value: &str) -> &mut Self {
         self.task_event.custom_headers.insert(
             key.into(),
             value.into(),
@@ -75,7 +72,7 @@ impl CreateTaskBuilder {
         self
     }
 
-    pub fn payload<'a, S: Serialize>(&'a mut self, payload: S) -> Result<&'a mut Self, Error> {
+    pub fn payload<S: Serialize>(&mut self, payload: S) -> Result<&mut Self, Error> {
         self.task_event.payload = serialize(&payload)?.into();
         Ok(self)
     }
@@ -89,18 +86,20 @@ impl CreateTaskBuilder {
     }
 }
 
-pub fn create_task_response(data: &[u8]) -> Result<msgpack::TaskEvent, Error> {
-    let frame = frame::decode_request_response(data)?;
-    let event = sbe::decode_execute_command_response(frame.message)?;
-    let mut de = Deserializer::new(event.data);
-    let event = Deserialize::deserialize(&mut de)?;
-    Ok(event)
+pub struct EventMetadata {
+    pub partition_id: u16,
+    pub position: u64,
+    pub key: u64,
 }
 
-fn serialize<S: Serialize>(data: &S) -> Result<Vec<u8>, Error> {
-    let mut buffer = Vec::new();
-    data.serialize(
-        &mut Serializer::with(&mut buffer, StructMapWriter),
-    )?;
-    Ok(buffer)
+pub struct TaskEvent {
+    pub metadata: EventMetadata,
+    pub event: msgpack::TaskEvent,
+}
+
+pub fn create_task_response(data: &[u8]) -> Result<TaskEvent, Error> {
+    let frame = frame::decode_request_response(data)?;
+    let (metadata, event) = sbe::decode_execute_command_response(frame.message)?;
+    let event = deserialize(event)?;
+    Ok(TaskEvent { metadata, event })
 }

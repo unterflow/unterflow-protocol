@@ -4,6 +4,8 @@ pub mod zb_protocol;
 pub use self::zb_protocol::ControlMessageType;
 pub use self::zb_protocol::EventType;
 
+use super::EventMetadata;
+
 use error::Error;
 use std;
 
@@ -55,14 +57,17 @@ pub fn encode_control_message_request(partition_id: u16, message_type: ControlMe
     Ok(buffer)
 }
 
-pub struct Event<'d> {
-    pub partition_id: u16,
-    pub position: u64,
-    pub key: u64,
-    pub data: &'d [u8],
+impl<'d> From<&'d zb_protocol::ExecuteCommandResponseFields> for EventMetadata {
+    fn from(fields: &zb_protocol::ExecuteCommandResponseFields) -> Self {
+        EventMetadata {
+            partition_id: fields.partition_id,
+            position: fields.position,
+            key: fields.key,
+        }
+    }
 }
 
-pub fn decode_execute_command_response(data: &[u8]) -> Result<Event, Error> {
+pub fn decode_execute_command_response(data: &[u8]) -> Result<(EventMetadata, &[u8]), Error> {
     let decoder = zb_protocol::start_decoding_execute_command_response(data);
     let (header, decoder) = decoder.header()?;
 
@@ -71,12 +76,7 @@ pub fn decode_execute_command_response(data: &[u8]) -> Result<Event, Error> {
     if *header == expected_header {
         let (fields, decoder) = decoder.execute_command_response_fields()?;
         let (data, _) = decoder.event()?;
-        Ok(Event {
-            partition_id: fields.partition_id,
-            position: fields.position,
-            key: fields.key,
-            data,
-        })
+        Ok((fields.into(), data))
     } else {
         Err(Error::DecodeError(format!(
             "Expected SBE message {:?} but got {:?}",
