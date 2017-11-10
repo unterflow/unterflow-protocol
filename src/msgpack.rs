@@ -1,7 +1,7 @@
 
 use error::Error;
 use rmp_serde;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
+use serde::{Deserialize, Deserializer, Serializer};
 use serde::de::{self, Visitor};
 
 use serde_bytes::ByteBuf;
@@ -108,46 +108,34 @@ impl Default for TaskState {
     }
 }
 
-impl Serialize for TaskState {
-    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
-    where
-        S: Serializer,
-    {
-        let value = match *self {
-            TaskState::Create => "CREATE",
-            _ => unimplemented!(),
-        };
+enum_serialize!{
+    TaskState => {
+        TaskState::Create => "CREATE",
+        TaskState::Created => "CREATED",
 
-        serializer.serialize_str(value)
-    }
-}
+        TaskState::Lock => "LOCK",
+        TaskState::Locked => "LOCKED",
+        TaskState::LockRejected => "LOCK_REJECTED",
 
-impl<'d> Deserialize<'d> for TaskState {
-    fn deserialize<D>(deserializer: D) -> Result<TaskState, D::Error>
-    where
-        D: Deserializer<'d>,
-    {
-        deserializer.deserialize_str(TaskStateVisitor)
-    }
-}
+        TaskState::Complete => "COMPLETE",
+        TaskState::Completed => "COMPLETED",
+        TaskState::CompleteRejected => "COMPLETE_REJECTED",
 
-struct TaskStateVisitor;
+        TaskState::ExpireLock => "EXPIRE_LOCK",
+        TaskState::LockExpired => "LOCK_EXPIRED",
+        TaskState::LockExpirationRejected => "LOCK_EXPIRATION_REJECTED",
 
-impl<'d> Visitor<'d> for TaskStateVisitor {
-    type Value = TaskState;
+        TaskState::Fail => "FAIL",
+        TaskState::Failed => "FAILED",
+        TaskState::FailRejected => "FAIL_REJECTED",
 
-    fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
-        formatter.write_str("an string represtentation of task state")
-    }
+        TaskState::UpdateRetries => "UPDATE_RETRIES",
+        TaskState::RetriesUpdated => "RETRIES_UPDATED",
+        TaskState::UpdateRetriesRejected => "UPDATE_RETRIES_REJECTED",
 
-    fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
-    where
-        E: de::Error,
-    {
-        match value {
-            "CREATED" => Ok(TaskState::Created),
-            _ => Err(E::custom(format!("Unsupported task state: {}", value))),
-        }
+        TaskState::Cancel => "CANCEL",
+        TaskState::Canceled => "CANCELED",
+        TaskState::CancelRejected => "CANCEL_REJECTED"
     }
 }
 
