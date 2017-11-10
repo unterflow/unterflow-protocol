@@ -16,6 +16,9 @@ matrix:
   allow_failures:
     - rust: nightly
 
+env:
+  - RUST_TEST_THREADS=1
+
 before_script:
   - docker run -p 51015:51015 --name zeebe -e ZEEBE_LOG_LEVEL=debug -d camunda/zeebe:SNAPSHOT
 
