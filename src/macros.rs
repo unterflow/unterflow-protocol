@@ -11,7 +11,7 @@ macro_rules! enum_serialize {
 impl ::serde::Serialize for $e {
     fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
     where
-        S: Serializer,
+        S: ::serde::Serializer,
     {
         let value = match *self {
             $($t => $s,)*
@@ -26,20 +26,20 @@ impl<'d> ::serde::Deserialize<'d> for $e {
 
     fn deserialize<D>(deserializer: D) -> Result<$e, D::Error>
     where
-        D: Deserializer<'d>,
+        D: ::serde::Deserializer<'d>,
     {
         struct EnumVisitor;
 
-        impl<'d> Visitor<'d> for EnumVisitor {
+        impl<'d> ::serde::de::Visitor<'d> for EnumVisitor {
             type Value = $e;
 
-            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+            fn expecting(&self, formatter: &mut ::std::fmt::Formatter) -> ::std::fmt::Result {
                 formatter.write_str("an string representation of enum")
             }
 
             fn visit_str<E>(self, value: &str) -> Result<Self::Value, E>
                 where
-                    E: de::Error,
+                    E: ::serde::de::Error,
             {
                 match value {
                     $($s => Ok($t),) *

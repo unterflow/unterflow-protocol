@@ -81,6 +81,10 @@ pub fn decode_request_response(data: &[u8]) -> Result<RequestResponseFrame, Erro
     }
 }
 
+pub fn encode_request_response_default(request_id: u64, message: &[u8]) -> Result<Vec<u8>, Error> {
+    encode_request_response(0, 0, 0, request_id, message)
+}
+
 pub fn encode_request_response(version: u8, flags: u8, stream_id: u32, request_id: u64, message: &[u8]) -> Result<Vec<u8>, Error> {
     let length = (size_of!(DataFrameHeader, TransportHeader, RequestResponseHeader) + message.len()) as u32;
 

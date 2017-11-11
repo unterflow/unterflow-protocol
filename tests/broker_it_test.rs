@@ -5,7 +5,7 @@ extern crate unterflow_protocol;
 use std::collections::HashMap;
 use std::io::prelude::*;
 use std::net::TcpStream;
-use std::time::{SystemTime, UNIX_EPOCH, Duration};
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use unterflow_protocol::*;
 
@@ -16,7 +16,9 @@ fn send_request(request: &[u8]) -> Vec<u8> {
     stream.write_all(request).unwrap();
 
     let mut buffer = vec![0; 4096];
-    stream.set_read_timeout(Some(Duration::from_secs(60))).unwrap();
+    stream
+        .set_read_timeout(Some(Duration::from_secs(60)))
+        .unwrap();
     let bytes = stream.read(&mut buffer).unwrap();
     buffer.truncate(bytes);
 
@@ -62,7 +64,7 @@ fn should_create_topic() {
 
     assert_eq!(0, metadata.partition_id);
 
-    assert_eq!(msgpack::TopicState::Created, event.state);
+    assert_eq!(msgpack::topic::TopicState::Created, event.state);
     assert_eq!(topic, event.name);
     assert_eq!(2, event.partitions);
 }
@@ -109,7 +111,7 @@ fn test_create_task() {
     let TaskEvent { metadata, event } = create_task_response(&buffer).unwrap();
     assert_eq!(partition, metadata.partition_id);
 
-    assert_eq!(msgpack::TaskState::Created, event.state);
+    assert_eq!(msgpack::task::TaskState::Created, event.state);
     assert_eq!("foo", event.task_type);
     assert_eq!(4, event.retries);
     assert_eq!(Some(&"1".to_string()), event.custom_headers.get("a"));
@@ -117,5 +119,26 @@ fn test_create_task() {
 
     let payload = event.payload_as::<HashMap<String, String>>().unwrap();
     assert_eq!(Some(&"bar".to_string()), payload.get("foo"));
+}
 
+#[test]
+#[cfg_attr(not(feature = "broker-it"), ignore)]
+fn should_open_topic_subscription() {
+    try_create_topic("default-topic", 1);
+    let partition = get_partition("default-topic").unwrap();
+
+    let request = create_topic_subscription(7, "test-sub", partition, 0, true).unwrap();
+
+    let buffer = send_request(&request);
+
+    let event = read_topic_subscription_response(&buffer).unwrap();
+
+    assert_eq!(
+        msgpack::topic::TopicSubscriberState::Subscribed,
+        event.state
+    );
+    assert_eq!("test-sub", event.name);
+    assert_eq!(0, event.prefetch_capacity);
+    assert!(event.start_position > 0);
+    assert_eq!(true, event.force_start);
 }

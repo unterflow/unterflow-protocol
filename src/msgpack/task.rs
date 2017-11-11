@@ -1,54 +1,12 @@
+
+
 use error::Error;
-use rmp_serde;
-use rmp_serde::encode::StructMapWriter;
-use serde::{Deserialize, Deserializer, Serialize, Serializer};
-use serde::de::{self, Visitor};
+
+use msgpack::{NIL, deserialize};
+use serde::Deserialize;
 
 use serde_bytes::ByteBuf;
 use std::collections::HashMap;
-use std::fmt;
-
-pub const EMPTY_MAP: u8 = 0x80;
-pub const EMPTY_ARRAY: u8 = 0x90;
-pub const NIL: u8 = 0xc0;
-
-pub fn serialize<S: Serialize>(data: &S) -> Result<Vec<u8>, Error> {
-    let mut buffer = Vec::new();
-    data.serialize(&mut rmp_serde::Serializer::with(
-        &mut buffer,
-        StructMapWriter,
-    ))?;
-    Ok(buffer)
-}
-
-pub fn deserialize<'d, D: Deserialize<'d>>(data: &[u8]) -> Result<D, Error> {
-    let mut de = rmp_serde::Deserializer::new(data);
-    let value = Deserialize::deserialize(&mut de)?;
-    Ok(value)
-}
-
-#[derive(Debug, Default, PartialEq, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TopologyResponse {
-    pub topic_leaders: Vec<TopicLeader>,
-    pub brokers: Vec<Broker>,
-}
-
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TopicLeader {
-    pub host: String,
-    pub port: u32,
-    pub topic_name: String,
-    pub partition_id: u16,
-}
-
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct Broker {
-    pub host: String,
-    pub port: u32,
-}
 
 #[derive(Debug, PartialEq, Deserialize, Serialize)]
 #[serde(default)]
@@ -173,28 +131,5 @@ impl Default for TaskHeaders {
             activity_id: "".to_string(),
             activity_instance_key: -1,
         }
-    }
-}
-
-#[derive(Debug, PartialEq, Deserialize, Serialize)]
-#[serde(rename_all = "camelCase")]
-pub struct TopicEvent {
-    pub state: TopicState,
-    pub name: String,
-    pub partitions: u32,
-}
-
-#[derive(Debug, PartialEq)]
-pub enum TopicState {
-    Create,
-    Created,
-    CreateRejected,
-}
-
-enum_serialize! {
-    TopicState => {
-        TopicState::Create => "CREATE",
-        TopicState::Created => "CREATED",
-        TopicState::CreateRejected => "CREATE_REJECTED"
     }
 }

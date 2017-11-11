@@ -19,8 +19,8 @@ use serde::Serialize;
 use std::collections::HashMap;
 
 pub fn create_topic_request(request_id: u64, partition_id: u16, topic: &str, partitions: u32) -> Result<Vec<u8>, Error> {
-    let topic_event = serialize(&msgpack::TopicEvent {
-        state: msgpack::TopicState::Create,
+    let topic_event = serialize(&msgpack::topic::TopicEvent {
+        state: msgpack::topic::TopicState::Create,
         name: topic.into(),
         partitions,
     })?;
@@ -55,7 +55,7 @@ pub fn topology_request(request_id: u64) -> Result<Vec<u8>, Error> {
     frame::encode_request_response(0, 0, 0, request_id, &buffer)
 }
 
-pub fn topology_response(data: &[u8]) -> Result<msgpack::TopologyResponse, Error> {
+pub fn topology_response(data: &[u8]) -> Result<msgpack::topology::TopologyResponse, Error> {
     let frame = frame::decode_request_response(data)?;
     let data = sbe::decode_control_message_response(frame.message)?;
     deserialize(data)
@@ -64,7 +64,7 @@ pub fn topology_response(data: &[u8]) -> Result<msgpack::TopologyResponse, Error
 pub struct CreateTaskBuilder {
     request_id: u64,
     partition_id: u16,
-    task_event: msgpack::TaskEvent,
+    task_event: msgpack::task::TaskEvent,
 }
 
 impl CreateTaskBuilder {
@@ -72,7 +72,7 @@ impl CreateTaskBuilder {
         CreateTaskBuilder {
             request_id,
             partition_id,
-            task_event: msgpack::TaskEvent {
+            task_event: msgpack::task::TaskEvent {
                 task_type: task_type.into(),
                 ..Default::default()
             },
@@ -121,14 +121,14 @@ pub struct EventMetadata {
 #[derive(Debug, PartialEq)]
 pub struct TaskEvent {
     pub metadata: EventMetadata,
-    pub event: msgpack::TaskEvent,
+    pub event: msgpack::task::TaskEvent,
 }
 
 #[derive(Debug, PartialEq)]
 pub struct TopicEvent {
     pub request_id: u64,
     pub metadata: EventMetadata,
-    pub event: msgpack::TopicEvent,
+    pub event: msgpack::topic::TopicEvent,
 }
 
 pub fn create_task_response(data: &[u8]) -> Result<TaskEvent, Error> {
@@ -136,4 +136,27 @@ pub fn create_task_response(data: &[u8]) -> Result<TaskEvent, Error> {
     let (metadata, event) = sbe::decode_execute_command_response(frame.message)?;
     let event = deserialize(event)?;
     Ok(TaskEvent { metadata, event })
+}
+
+
+pub fn create_topic_subscription(request_id: u64, name: &str, partition_id: u16, start_position: i64, force_start: bool) -> Result<Vec<u8>, Error> {
+    let event = msgpack::topic::TopicSubscriberEvent {
+        name: name.into(),
+        start_position,
+        force_start,
+        ..Default::default()
+    };
+
+    let buffer = serialize(&event)?;
+
+    let buffer = sbe::encode_execute_command_request(partition_id, sbe::EventType::SUBSCRIBER_EVENT, &buffer)?;
+
+    frame::encode_request_response_default(request_id, &buffer)
+}
+
+pub fn read_topic_subscription_response(data: &[u8]) -> Result<msgpack::topic::TopicSubscriberEvent, Error> {
+    let frame = frame::decode_request_response(data)?;
+    let (_, event) = sbe::decode_execute_command_response(frame.message)?;
+    let event = deserialize(event)?;
+    Ok(event)
 }
